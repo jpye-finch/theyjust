@@ -734,7 +734,7 @@ Create `supabase/tests/0003_create_family.test.sql`:
 ```sql
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(5);
+select plan(6);
 
 insert into auth.users (id, email)
 values ('00000000-0000-0000-0000-0000000000e1', 'newparent@test.local');
@@ -757,13 +757,23 @@ select is(
   'owner',
   'creator is enrolled as owner');
 
--- Anonymous callers must be rejected.
+-- Anonymous callers are rejected at the grant layer (fail closed): the
+-- migration revokes EXECUTE from anon, so the call never reaches the body.
 select set_config('request.jwt.claims', '{"role": "anon"}', true);
 set local role anon;
 select throws_ok(
   $$select public.create_family('Sneaky family')$$,
+  '42501', null,
+  'anonymous caller is rejected by the EXECUTE grant');
+
+-- Defense in depth: an authenticated role with no user id (no sub claim)
+-- passes the grant layer but is rejected by the body's auth.uid() check.
+set local role authenticated;
+select set_config('request.jwt.claims', '{"role": "authenticated"}', true);
+select throws_ok(
+  $$select public.create_family('Sneaky family')$$,
   'P0001', 'not authenticated',
-  'anonymous caller is rejected');
+  'caller without a user id is rejected by the body check');
 
 select * from finish();
 rollback;
@@ -826,7 +836,7 @@ grant execute on function public.can_access_moment(uuid) to authenticated;
 supabase db reset && supabase test db
 ```
 
-Expected: all pass (39 assertions across three files).
+Expected: all pass (40 assertions across three files).
 
 - [ ] **Step 5: Commit**
 
