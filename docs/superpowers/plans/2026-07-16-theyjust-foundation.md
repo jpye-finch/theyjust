@@ -237,7 +237,7 @@ Create `supabase/tests/0001_schema.test.sql`:
 ```sql
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(10);
+select plan(14);
 
 select has_table('public', 'families', 'families table exists');
 select has_table('public', 'family_members', 'family_members table exists');
@@ -245,6 +245,11 @@ select has_table('public', 'children', 'children table exists');
 select has_table('public', 'moments', 'moments table exists');
 select has_table('public', 'moment_photos', 'moment_photos table exists');
 select has_table('public', 'invites', 'invites table exists');
+
+select has_column('public', 'moment_photos', 'storage_path', 'moment_photos.storage_path exists');
+select has_column('public', 'moment_photos', 'position', 'moment_photos.position exists');
+select has_column('public', 'invites', 'code', 'invites.code exists');
+select has_column('public', 'invites', 'expires_at', 'invites.expires_at exists');
 
 -- Seed enough rows to exercise the moments XOR constraint (superuser bypasses RLS).
 insert into auth.users (id, email)
@@ -302,7 +307,9 @@ Create `supabase/migrations/20260716000001_schema.sql`:
 create table public.families (
   id uuid primary key default gen_random_uuid(),
   name text not null default 'My family',
-  created_by uuid not null references auth.users (id),
+  -- informational; ownership lives in family_members. Nullable + set null so
+  -- account deletion (spec §6) can sever the reference without destroying the family.
+  created_by uuid references auth.users (id) on delete set null,
   created_at timestamptz not null default now()
 );
 
@@ -321,7 +328,8 @@ create table public.children (
   date_of_birth date not null,
   due_date date,           -- non-null marks premature birth; drives corrected age
   avatar_path text,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  constraint due_after_birth check (due_date is null or due_date > date_of_birth)
 );
 
 create table public.moments (
@@ -331,12 +339,17 @@ create table public.moments (
   custom_title text,
   occurred_on date not null,
   note text,
-  logged_by uuid not null references auth.users (id),
+  -- attribution survives account deletion (spec §6): set null, UI shows a fallback
+  logged_by uuid references auth.users (id) on delete set null,
   created_at timestamptz not null default now(),
   constraint moment_kind check (
     (milestone_id is not null and custom_title is null)
     or (milestone_id is null and custom_title is not null)
-  )
+  ),
+  constraint milestone_id_not_blank check
+    (milestone_id is null or length(trim(milestone_id)) > 0),
+  constraint custom_title_not_blank check
+    (custom_title is null or length(trim(custom_title)) > 0)
 );
 
 create table public.moment_photos (
@@ -352,24 +365,43 @@ create table public.invites (
   id uuid primary key default gen_random_uuid(),
   family_id uuid not null references public.families (id) on delete cascade,
   code text not null unique,
-  created_by uuid not null references auth.users (id),
+  -- invites are ephemeral: cascade with their creator; redemption marker survives as null
+  created_by uuid not null references auth.users (id) on delete cascade,
   expires_at timestamptz not null,
-  used_by uuid references auth.users (id)
+  used_by uuid references auth.users (id) on delete set null
 );
 
 create index moments_child_occurred_idx on public.moments (child_id, occurred_on desc);
 create index moment_photos_moment_idx on public.moment_photos (moment_id, position);
 create index children_family_idx on public.children (family_id);
+create index family_members_user_idx on public.family_members (user_id);
+create index invites_family_idx on public.invites (family_id);
+
+-- RLS is enabled from birth so these tables are default-deny even before the
+-- Task 5 policies exist. postgres/superuser bypasses RLS, so migrations and
+-- pgTAP seeds are unaffected.
+alter table public.families enable row level security;
+alter table public.family_members enable row level security;
+alter table public.children enable row level security;
+alter table public.moments enable row level security;
+alter table public.moment_photos enable row level security;
+alter table public.invites enable row level security;
 
 -- The Supabase CLI no longer auto-grants privileges on new tables to the API
--- roles (auto_expose_new_tables is unset/deprecated), so without these grants
--- the `authenticated` role gets "permission denied" before RLS is even
--- consulted. RLS (next migration) remains the actual security boundary —
--- these grants are the outer gate, default-deny still applies until policies exist.
+-- roles, so without explicit grants `authenticated` (the app) and
+-- `service_role` (edge functions / future admin flows) hit "permission denied"
+-- before RLS is consulted. RLS + policies remain the security boundary.
 grant select, insert, update, delete
   on public.families, public.family_members, public.children,
-     public.moments, public.moment_photos, public.invites
-  to authenticated;
+     public.moment_photos, public.invites
+  to authenticated, service_role;
+
+-- moments: authenticated update is column-scoped so attribution (logged_by)
+-- and lineage (id, child_id, created_at) can't be rewritten after logging.
+grant select, insert, delete on public.moments to authenticated, service_role;
+grant update (milestone_id, custom_title, occurred_on, note)
+  on public.moments to authenticated;
+grant update on public.moments to service_role;
 ```
 
 - [ ] **Step 4: Run tests to verify they pass**
@@ -378,7 +410,7 @@ grant select, insert, update, delete
 supabase db reset && supabase test db
 ```
 
-Expected: `Files=1, Tests=10`, all pass.
+Expected: `Files=1, Tests=14`, all pass.
 
 - [ ] **Step 5: Commit**
 
@@ -404,7 +436,7 @@ Create `supabase/tests/0002_rls.test.sql`:
 ```sql
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(8);
+select plan(9);
 
 -- Seed (as superuser, bypassing RLS): two users, two families, one child each.
 insert into auth.users (id, email) values
@@ -427,6 +459,10 @@ insert into public.moments (id, child_id, milestone_id, occurred_on, logged_by) 
   ('00000000-0000-0000-0000-0000000000d1', '00000000-0000-0000-0000-0000000000ca',
    'first_smile', '2026-03-01', '00000000-0000-0000-0000-0000000000a1');
 
+insert into public.moment_photos (id, moment_id, storage_path) values
+  ('00000000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-0000000000d1',
+   'family-fa/photo-1.jpg');
+
 -- Become Alice.
 set local role authenticated;
 select set_config('request.jwt.claims',
@@ -440,6 +476,8 @@ select is((select name from public.children), 'Alice Jr',
   'and it is the right child');
 select is((select count(*) from public.moments), 1::bigint,
   'Alice sees her own moment');
+select is((select count(*) from public.moment_photos), 1::bigint,
+  'Alice sees her moment''s photo');
 
 select throws_ok(
   $$insert into public.children (family_id, name, date_of_birth)
@@ -471,7 +509,7 @@ rollback;
 supabase db reset && supabase test db
 ```
 
-Expected: FAIL — without RLS enabled, Alice sees 2 families/children (the count assertions fail).
+Expected: FAIL — RLS is enabled (schema migration) but no policies exist yet, so default-deny hides every row: the is() count assertions fail (0 rows instead of 1) and the final lives_ok ("Bob CAN insert") fails with 42501. The throws_ok assertions already pass — the counts and Bob's insert are the TDD signal.
 
 - [ ] **Step 3: Write the RLS migration**
 
@@ -522,12 +560,7 @@ as $$
   );
 $$;
 
-alter table public.families enable row level security;
-alter table public.family_members enable row level security;
-alter table public.children enable row level security;
-alter table public.moments enable row level security;
-alter table public.moment_photos enable row level security;
-alter table public.invites enable row level security;
+-- RLS was already enabled for all six tables in the schema migration (Task 4).
 
 -- families: members read/update; creation only via create_family RPC (Task 6);
 -- no direct insert/delete policy for now (owner-deletion flow is Plan 4).
@@ -566,6 +599,8 @@ create policy moment_photos_select on public.moment_photos
   for select using (public.can_access_moment(moment_id));
 create policy moment_photos_insert on public.moment_photos
   for insert with check (public.can_access_moment(moment_id));
+create policy moment_photos_update on public.moment_photos
+  for update using (public.can_access_moment(moment_id));
 create policy moment_photos_delete on public.moment_photos
   for delete using (public.can_access_moment(moment_id));
 
@@ -585,7 +620,7 @@ create policy invites_delete on public.invites
 supabase db reset && supabase test db
 ```
 
-Expected: all pass (both test files, 18 assertions total).
+Expected: all pass (both test files, 23 assertions total).
 
 - [ ] **Step 5: Commit**
 
@@ -693,7 +728,7 @@ grant execute on function public.create_family(text) to authenticated;
 supabase db reset && supabase test db
 ```
 
-Expected: all pass (23 assertions across three files).
+Expected: all pass (28 assertions across three files).
 
 - [ ] **Step 5: Commit**
 
