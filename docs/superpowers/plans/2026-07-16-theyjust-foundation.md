@@ -352,6 +352,16 @@ create table public.invites (
 create index moments_child_occurred_idx on public.moments (child_id, occurred_on desc);
 create index moment_photos_moment_idx on public.moment_photos (moment_id, position);
 create index children_family_idx on public.children (family_id);
+
+-- The Supabase CLI no longer auto-grants privileges on new tables to the API
+-- roles (auto_expose_new_tables is unset/deprecated), so without these grants
+-- the `authenticated` role gets "permission denied" before RLS is even
+-- consulted. RLS (next migration) remains the actual security boundary —
+-- these grants are the outer gate, default-deny still applies until policies exist.
+grant select, insert, update, delete
+  on public.families, public.family_members, public.children,
+     public.moments, public.moment_photos, public.invites
+  to authenticated;
 ```
 
 - [ ] **Step 4: Run tests to verify they pass**
@@ -691,11 +701,61 @@ git commit -m "feat: create_family RPC solves the RLS bootstrap for new users"
 **Files:**
 - Create: `src/features/auth/useSession.ts`
 - Create: `src/features/auth/AuthForm.tsx`
-- Create: `app/_layout.tsx` (replace template version)
-- Create: `app/(auth)/sign-in.tsx`, `app/(auth)/sign-up.tsx`, `app/(auth)/_layout.tsx`
-- Create: `app/(app)/index.tsx`, `app/(app)/_layout.tsx`
-- Delete: `app/index.tsx` (template placeholder)
+- Create: `src/app/_layout.tsx` (replace template version — SDK 57 keeps routes under `src/app/`)
+- Create: `src/app/(auth)/sign-in.tsx`, `src/app/(auth)/sign-up.tsx`, `src/app/(auth)/_layout.tsx`
+- Create: `src/app/(app)/index.tsx`, `src/app/(app)/_layout.tsx`
+- Delete: `src/app/index.tsx` (template placeholder)
+- Create: `jest.setup.js`, `.env.example`; modify `package.json` (jest setupFiles), `src/lib/supabase.ts` (AppState auto-refresh), `src/lib/__tests__/supabase-import.test.ts` (import real module)
 - Test: `src/features/auth/__tests__/AuthForm.test.tsx`
+
+- [ ] **Step 0: Jest env shim, .env.example, AppState auto-refresh**
+
+Jest doesn't load `.env`, so importing `src/lib/supabase.ts` in any test would hit the module-level env guard and throw. Create `jest.setup.js`:
+
+```js
+process.env.EXPO_PUBLIC_SUPABASE_URL = 'http://127.0.0.1:54321';
+process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
+```
+
+Add to the `jest` block in `package.json`:
+
+```json
+"setupFiles": ["<rootDir>/jest.setup.js"]
+```
+
+Create `.env.example` (committed):
+
+```
+# Copy to .env and fill from `supabase start` output
+EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+EXPO_PUBLIC_SUPABASE_ANON_KEY=
+```
+
+Append to `src/lib/supabase.ts` (documented Supabase RN pattern — pauses token refresh in background, resumes on foreground):
+
+```ts
+import { AppState } from 'react-native';
+
+AppState.addEventListener('change', (state) => {
+  if (state === 'active') {
+    supabase.auth.startAutoRefresh();
+  } else {
+    supabase.auth.stopAutoRefresh();
+  }
+});
+```
+
+(Move the `AppState` import up with the other imports.) Then strengthen `src/lib/__tests__/supabase-import.test.ts` by adding a test that imports the real module, proving the env shim works:
+
+```ts
+import { supabase } from '../supabase';
+
+it('constructs the app client under jest', () => {
+  expect(supabase.auth).toBeDefined();
+});
+```
+
+Run `npm test` — all suites pass.
 
 - [ ] **Step 1: Write the failing component test**
 
@@ -855,13 +915,13 @@ export function useSession() {
 }
 ```
 
-- [ ] **Step 6: Root layout with auth gate — `app/_layout.tsx` (replace template file)**
+- [ ] **Step 6: Root layout with auth gate — `src/app/_layout.tsx` (replace template file)**
 
 ```tsx
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { useSession } from '../src/features/auth/useSession';
+import { useSession } from '@/features/auth/useSession';
 
 export default function RootLayout() {
   const { session, loading } = useSession();
@@ -892,7 +952,7 @@ export default function RootLayout() {
 
 - [ ] **Step 7: Auth screens**
 
-`app/(auth)/_layout.tsx`:
+`src/app/(auth)/_layout.tsx`:
 
 ```tsx
 import { Stack } from 'expo-router';
@@ -902,14 +962,14 @@ export default function AuthLayout() {
 }
 ```
 
-`app/(auth)/sign-in.tsx`:
+`src/app/(auth)/sign-in.tsx`:
 
 ```tsx
 import { Link } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { AuthForm } from '../../src/features/auth/AuthForm';
-import { supabase } from '../../src/lib/supabase';
+import { AuthForm } from '@/features/auth/AuthForm';
+import { supabase } from '@/lib/supabase';
 
 export default function SignIn() {
   const [error, setError] = useState<string | null>(null);
@@ -944,14 +1004,14 @@ const styles = StyleSheet.create({
 });
 ```
 
-`app/(auth)/sign-up.tsx`:
+`src/app/(auth)/sign-up.tsx`:
 
 ```tsx
 import { Link } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { AuthForm } from '../../src/features/auth/AuthForm';
-import { supabase } from '../../src/lib/supabase';
+import { AuthForm } from '@/features/auth/AuthForm';
+import { supabase } from '@/lib/supabase';
 
 export default function SignUp() {
   const [error, setError] = useState<string | null>(null);
@@ -987,7 +1047,7 @@ const styles = StyleSheet.create({
 
 - [ ] **Step 8: Signed-in placeholder home**
 
-`app/(app)/_layout.tsx`:
+`src/app/(app)/_layout.tsx`:
 
 ```tsx
 import { Stack } from 'expo-router';
@@ -997,11 +1057,11 @@ export default function AppLayout() {
 }
 ```
 
-`app/(app)/index.tsx`:
+`src/app/(app)/index.tsx`:
 
 ```tsx
 import { Button, StyleSheet, Text, View } from 'react-native';
-import { supabase } from '../../src/lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 export default function Home() {
   return (
@@ -1021,7 +1081,7 @@ const styles = StyleSheet.create({
 Delete the template placeholder if present:
 
 ```bash
-rm -f app/index.tsx
+rm -f src/app/index.tsx
 ```
 
 - [ ] **Step 9: Full verification**

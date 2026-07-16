@@ -137,6 +137,10 @@ Safety rules, baked into all copy:
   Both are v1 features — Apple requires in-app account deletion regardless.
 - **No third-party analytics SDKs in v1.** Sentry crash reporting with PII scrubbing
   is the only telemetry.
+- **Session token storage:** during development the Supabase session persists in
+  plaintext AsyncStorage. Before store release (Plan 4), harden per Supabase's RN
+  guidance: AES key in expo-secure-store (Keychain/Keystore), encrypted session
+  blob in AsyncStorage. Tracked as a mandatory pre-release item.
 - Future community stats must be **opt-in, anonymised, aggregate-only** — designed in
   Phase 2, but nothing in this schema blocks it.
 
