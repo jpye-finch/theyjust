@@ -1,9 +1,10 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(6);
+select plan(10);
 
-insert into auth.users (id, email)
-values ('00000000-0000-0000-0000-0000000000e1', 'newparent@test.local');
+insert into auth.users (id, email) values
+  ('00000000-0000-0000-0000-0000000000e1', 'newparent@test.local'),
+  ('00000000-0000-0000-0000-0000000000e2', 'otherparent@test.local');
 
 set local role authenticated;
 select set_config('request.jwt.claims',
@@ -22,6 +23,26 @@ select is(
    where user_id = '00000000-0000-0000-0000-0000000000e1'),
   'owner',
   'creator is enrolled as owner');
+
+-- Idempotency: onboarding retries and double-taps must not fork the user
+-- into a second family. This also asserts the RPC's return value is the
+-- actual family id (the contract client code consumes).
+select is(
+  public.create_family('Second attempt'),
+  (select id from public.families),
+  'a repeat call returns the existing owned family''s id — no fork');
+select is((select count(*) from public.families), 1::bigint,
+  'and no second family was created');
+
+-- A different user with a blank name gets the default.
+select set_config('request.jwt.claims',
+  '{"sub": "00000000-0000-0000-0000-0000000000e2", "role": "authenticated"}', true);
+
+select lives_ok(
+  $$select public.create_family('   ')$$,
+  'a fresh user can create a family with a blank name');
+select is((select name from public.families), 'My family',
+  'blank names fall back to the default');
 
 -- Anonymous callers are rejected at the grant layer (fail closed): the
 -- migration revokes EXECUTE from anon, so the call never reaches the body.

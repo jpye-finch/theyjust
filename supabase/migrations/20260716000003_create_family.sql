@@ -1,3 +1,7 @@
+-- The only function end users call directly: bootstraps a brand-new account
+-- past RLS (there is deliberately no insert policy on families/family_members).
+-- Idempotent for onboarding: a retried or double-tapped call returns the
+-- already-owned family instead of forking the user into a second one.
 create or replace function public.create_family(family_name text)
 returns uuid
 language plpgsql
@@ -9,6 +13,19 @@ declare
 begin
   if auth.uid() is null then
     raise exception 'not authenticated';
+  end if;
+
+  -- Serialise concurrent calls from the same user (double-tap, network retry):
+  -- without this, two READ COMMITTED transactions could both pass the
+  -- already-owns-a-family check below and each create a family.
+  perform pg_advisory_xact_lock(hashtext('create_family:' || auth.uid()::text));
+
+  select family_id into fam_id
+    from public.family_members
+   where user_id = auth.uid() and role = 'owner'
+   limit 1;
+  if fam_id is not null then
+    return fam_id;
   end if;
 
   insert into public.families (name, created_by)
