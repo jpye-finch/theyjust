@@ -392,7 +392,7 @@ alter table public.invites enable row level security;
 -- `service_role` (edge functions / future admin flows) hit "permission denied"
 -- before RLS is consulted. RLS + policies remain the security boundary.
 grant select, insert, update, delete
-  on public.families, public.family_members, public.children,
+  on public.family_members, public.children,
      public.moment_photos, public.invites
   to authenticated, service_role;
 
@@ -402,6 +402,13 @@ grant select, insert, delete on public.moments to authenticated, service_role;
 grant update (milestone_id, custom_title, occurred_on, note)
   on public.moments to authenticated;
 grant update on public.moments to service_role;
+
+-- families: likewise column-scoped — members may edit only the display name.
+-- created_by is provenance and must not be spoofable (Plan 4 builds
+-- ownership transfer on top of trustworthy membership/provenance data).
+grant select, insert, delete on public.families to authenticated, service_role;
+grant update (name) on public.families to authenticated;
+grant update on public.families to service_role;
 ```
 
 - [ ] **Step 4: Run tests to verify they pass**
@@ -436,7 +443,7 @@ Create `supabase/tests/0002_rls.test.sql`:
 ```sql
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(9);
+select plan(20);
 
 -- Seed (as superuser, bypassing RLS): two users, two families, one child each.
 insert into auth.users (id, email) values
@@ -462,6 +469,10 @@ insert into public.moments (id, child_id, milestone_id, occurred_on, logged_by) 
 insert into public.moment_photos (id, moment_id, storage_path) values
   ('00000000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-0000000000d1',
    'family-fa/photo-1.jpg');
+
+insert into public.invites (family_id, code, created_by, expires_at) values
+  ('00000000-0000-0000-0000-0000000000fa', 'ALICE-INVITE',
+   '00000000-0000-0000-0000-0000000000a1', now() + interval '7 days');
 
 -- Become Alice.
 set local role authenticated;
@@ -499,6 +510,74 @@ select lives_ok(
     values ('00000000-0000-0000-0000-0000000000fb', 'Bob Jr 2', '2026-03-01')$$,
   'Bob CAN insert a child into his own family');
 
+-- Bob cannot MUTATE Alice's rows (RLS filters silently: 0 rows affected).
+select is(
+  (with u as (update public.moments set note = 'hacked'
+              where id = '00000000-0000-0000-0000-0000000000d1' returning 1)
+   select count(*) from u), 0::bigint,
+  'Bob cannot update Alice''s moment');
+
+select is(
+  (with d as (delete from public.moments
+              where id = '00000000-0000-0000-0000-0000000000d1' returning 1)
+   select count(*) from d), 0::bigint,
+  'Bob cannot delete Alice''s moment');
+
+select is(
+  (with u as (update public.children set name = 'hacked'
+              where id = '00000000-0000-0000-0000-0000000000ca' returning 1)
+   select count(*) from u), 0::bigint,
+  'Bob cannot update Alice''s child');
+
+select is(
+  (with d as (delete from public.children
+              where id = '00000000-0000-0000-0000-0000000000ca' returning 1)
+   select count(*) from d), 0::bigint,
+  'Bob cannot delete Alice''s child');
+
+select is(
+  (with u as (update public.families set name = 'hacked'
+              where id = '00000000-0000-0000-0000-0000000000fa' returning 1)
+   select count(*) from u), 0::bigint,
+  'Bob cannot rename Alice''s family');
+
+select throws_ok(
+  $$insert into public.moment_photos (moment_id, storage_path)
+    values ('00000000-0000-0000-0000-0000000000d1', 'intruder.jpg')$$,
+  '42501', null,
+  'Bob cannot attach a photo to Alice''s moment');
+
+select is(
+  (with d as (delete from public.moment_photos
+              where id = '00000000-0000-0000-0000-0000000000e1' returning 1)
+   select count(*) from d), 0::bigint,
+  'Bob cannot delete Alice''s photo');
+
+select is((select count(*) from public.invites), 0::bigint,
+  'Bob sees none of Alice''s invites');
+
+-- Back to Alice: positive controls prove the write paths actually work.
+select set_config('request.jwt.claims',
+  '{"sub": "00000000-0000-0000-0000-0000000000a1", "role": "authenticated"}', true);
+
+select is(
+  (with u as (update public.moments set note = 'Her first smile!'
+              where id = '00000000-0000-0000-0000-0000000000d1' returning 1)
+   select count(*) from u), 1::bigint,
+  'Alice can update her own moment');
+
+select is(
+  (with u as (update public.families set name = 'The Alices'
+              where id = '00000000-0000-0000-0000-0000000000fa' returning 1)
+   select count(*) from u), 1::bigint,
+  'Alice can rename her own family');
+
+select throws_ok(
+  $$update public.families set created_by = '00000000-0000-0000-0000-0000000000b1'
+    where id = '00000000-0000-0000-0000-0000000000fa'$$,
+  '42501', null,
+  'created_by is not writable even by a family member (column-scoped grant)');
+
 select * from finish();
 rollback;
 ```
@@ -509,7 +588,7 @@ rollback;
 supabase db reset && supabase test db
 ```
 
-Expected: FAIL — RLS is enabled (schema migration) but no policies exist yet, so default-deny hides every row: the is() count assertions fail (0 rows instead of 1) and the final lives_ok ("Bob CAN insert") fails with 42501. The throws_ok assertions already pass — the counts and Bob's insert are the TDD signal.
+Expected: FAIL — RLS is enabled (schema migration) but no policies exist yet, so default-deny hides every row: the is() count assertions fail (0 rows instead of 1), Alice's positive-control updates affect 0 rows, and the lives_ok ("Bob CAN insert") fails with 42501. The denial assertions (throws_ok / 0-rows-affected) pass early — the counts and positive controls are the TDD signal.
 
 - [ ] **Step 3: Write the RLS migration**
 
@@ -628,7 +707,7 @@ create policy invites_delete on public.invites
 supabase db reset && supabase test db
 ```
 
-Expected: all pass (both test files, 23 assertions total).
+Expected: all pass (both test files, 34 assertions total).
 
 - [ ] **Step 5: Commit**
 
@@ -636,6 +715,11 @@ Expected: all pass (both test files, 23 assertions total).
 git add supabase
 git commit -m "feat: row-level security — family-scoped access proven by pgTAP tests"
 ```
+
+Guardrail for Plans 2/3: Postgres applies RLS as a per-row post-filter, never as an
+index condition. App queries must ALWAYS filter moments/photos by child_id/moment_id
+(or an IN-list of the family's children) — an unfiltered `select * from moments`
+scans every family's rows through the policy function and degrades as the system grows.
 
 ---
 
@@ -746,7 +830,7 @@ grant execute on function public.can_access_moment(uuid) to authenticated;
 supabase db reset && supabase test db
 ```
 
-Expected: all pass (28 assertions across three files).
+Expected: all pass (39 assertions across three files).
 
 - [ ] **Step 5: Commit**
 
