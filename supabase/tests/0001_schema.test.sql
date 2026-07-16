@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(10);
+select plan(14);
 
 select has_table('public', 'families', 'families table exists');
 select has_table('public', 'family_members', 'family_members table exists');
@@ -8,6 +8,11 @@ select has_table('public', 'children', 'children table exists');
 select has_table('public', 'moments', 'moments table exists');
 select has_table('public', 'moment_photos', 'moment_photos table exists');
 select has_table('public', 'invites', 'invites table exists');
+
+select has_column('public', 'moment_photos', 'storage_path', 'moment_photos.storage_path exists');
+select has_column('public', 'moment_photos', 'position', 'moment_photos.position exists');
+select has_column('public', 'invites', 'code', 'invites.code exists');
+select has_column('public', 'invites', 'expires_at', 'invites.expires_at exists');
 
 -- Seed enough rows to exercise the moments XOR constraint (superuser bypasses RLS).
 insert into auth.users (id, email)
