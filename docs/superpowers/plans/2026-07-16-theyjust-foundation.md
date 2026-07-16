@@ -734,10 +734,11 @@ Create `supabase/tests/0003_create_family.test.sql`:
 ```sql
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(6);
+select plan(10);
 
-insert into auth.users (id, email)
-values ('00000000-0000-0000-0000-0000000000e1', 'newparent@test.local');
+insert into auth.users (id, email) values
+  ('00000000-0000-0000-0000-0000000000e1', 'newparent@test.local'),
+  ('00000000-0000-0000-0000-0000000000e2', 'otherparent@test.local');
 
 set local role authenticated;
 select set_config('request.jwt.claims',
@@ -756,6 +757,26 @@ select is(
    where user_id = '00000000-0000-0000-0000-0000000000e1'),
   'owner',
   'creator is enrolled as owner');
+
+-- Idempotency: onboarding retries and double-taps must not fork the user
+-- into a second family. This also asserts the RPC's return value is the
+-- actual family id (the contract client code consumes).
+select is(
+  public.create_family('Second attempt'),
+  (select id from public.families),
+  'a repeat call returns the existing owned family''s id — no fork');
+select is((select count(*) from public.families), 1::bigint,
+  'and no second family was created');
+
+-- A different user with a blank name gets the default.
+select set_config('request.jwt.claims',
+  '{"sub": "00000000-0000-0000-0000-0000000000e2", "role": "authenticated"}', true);
+
+select lives_ok(
+  $$select public.create_family('   ')$$,
+  'a fresh user can create a family with a blank name');
+select is((select name from public.families), 'My family',
+  'blank names fall back to the default');
 
 -- Anonymous callers are rejected at the grant layer (fail closed): the
 -- migration revokes EXECUTE from anon, so the call never reaches the body.
@@ -792,6 +813,10 @@ Expected: FAIL — `function public.create_family(text) does not exist`.
 Create `supabase/migrations/20260716000003_create_family.sql`:
 
 ```sql
+-- The only function end users call directly: bootstraps a brand-new account
+-- past RLS (there is deliberately no insert policy on families/family_members).
+-- Idempotent for onboarding: a retried or double-tapped call returns the
+-- already-owned family instead of forking the user into a second one.
 create or replace function public.create_family(family_name text)
 returns uuid
 language plpgsql
@@ -803,6 +828,19 @@ declare
 begin
   if auth.uid() is null then
     raise exception 'not authenticated';
+  end if;
+
+  -- Serialise concurrent calls from the same user (double-tap, network retry):
+  -- without this, two READ COMMITTED transactions could both pass the
+  -- already-owns-a-family check below and each create a family.
+  perform pg_advisory_xact_lock(hashtext('create_family:' || auth.uid()::text));
+
+  select family_id into fam_id
+    from public.family_members
+   where user_id = auth.uid() and role = 'owner'
+   limit 1;
+  if fam_id is not null then
+    return fam_id;
   end if;
 
   insert into public.families (name, created_by)
@@ -836,7 +874,7 @@ grant execute on function public.can_access_moment(uuid) to authenticated;
 supabase db reset && supabase test db
 ```
 
-Expected: all pass (40 assertions across three files).
+Expected: all pass (44 assertions across three files).
 
 - [ ] **Step 5: Commit**
 
