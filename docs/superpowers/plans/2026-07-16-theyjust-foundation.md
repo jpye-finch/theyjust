@@ -237,7 +237,7 @@ Create `supabase/tests/0001_schema.test.sql`:
 ```sql
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(9);
+select plan(10);
 
 select has_table('public', 'families', 'families table exists');
 select has_table('public', 'family_members', 'family_members table exists');
@@ -273,6 +273,14 @@ select throws_ok(
   '23514',
   null,
   'moment with BOTH milestone_id and custom_title violates XOR constraint');
+
+select throws_ok(
+  $$insert into public.moments (child_id, occurred_on, logged_by)
+    values ('00000000-0000-0000-0000-0000000000c1', '2026-06-01',
+            '00000000-0000-0000-0000-00000000000a')$$,
+  '23514',
+  null,
+  'moment with NEITHER milestone_id nor custom_title violates XOR constraint');
 
 select * from finish();
 rollback;
@@ -370,7 +378,7 @@ grant select, insert, update, delete
 supabase db reset && supabase test db
 ```
 
-Expected: `ok 1..9`, all pass.
+Expected: `Files=1, Tests=10`, all pass.
 
 - [ ] **Step 5: Commit**
 
@@ -577,7 +585,7 @@ create policy invites_delete on public.invites
 supabase db reset && supabase test db
 ```
 
-Expected: all pass (both test files, 17 assertions total).
+Expected: all pass (both test files, 18 assertions total).
 
 - [ ] **Step 5: Commit**
 
@@ -685,7 +693,7 @@ grant execute on function public.create_family(text) to authenticated;
 supabase db reset && supabase test db
 ```
 
-Expected: all pass (22 assertions across three files).
+Expected: all pass (23 assertions across three files).
 
 - [ ] **Step 5: Commit**
 
