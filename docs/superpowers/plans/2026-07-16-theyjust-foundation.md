@@ -107,9 +107,16 @@ Add these top-level keys (merge into existing JSON):
   "jest": {
     "preset": "jest-expo",
     "transformIgnorePatterns": [
-      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|@supabase/.*)"
+      "/node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@sentry/react-native|native-base|standard-navigation|@supabase))",
+      "/node_modules/react-native-reanimated/plugin/",
+      "/node_modules/@react-native/babel-preset/"
     ]
   }
+```
+
+(This is the jest-expo 57 preset's own three-entry array with an added `@supabase` carve-out — overriding `transformIgnorePatterns` replaces the preset's value wholesale, so all three entries must be preserved.)
+
+```json
 }
 ```
 
@@ -205,6 +212,8 @@ npx tsc --noEmit
 ```
 
 Expected: exits 0.
+
+Known trap: if a later Jest test importing supabase-js fails with `Cannot use import statement outside a module`, the culprit is usually `isows` (an ESM dep of @supabase/realtime-js, outside the `@supabase/` scope) — add `isows` to the first transformIgnorePatterns lookahead alternatives.
 
 - [ ] **Step 6: Commit**
 
