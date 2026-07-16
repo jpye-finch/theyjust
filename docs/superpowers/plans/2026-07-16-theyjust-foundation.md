@@ -728,6 +728,16 @@ $$;
 
 revoke execute on function public.create_family(text) from public, anon;
 grant execute on function public.create_family(text) to authenticated;
+
+-- Tidy-up from Task 5 review: the RLS helper functions default to EXECUTE for
+-- PUBLIC. Inert for anon (auth.uid() is null → always false) but lock them to
+-- the roles that need them anyway.
+revoke execute on function public.is_family_member(uuid) from public, anon;
+revoke execute on function public.can_access_child(uuid) from public, anon;
+revoke execute on function public.can_access_moment(uuid) from public, anon;
+grant execute on function public.is_family_member(uuid) to authenticated;
+grant execute on function public.can_access_child(uuid) to authenticated;
+grant execute on function public.can_access_moment(uuid) to authenticated;
 ```
 
 - [ ] **Step 4: Run tests to verify they pass**
