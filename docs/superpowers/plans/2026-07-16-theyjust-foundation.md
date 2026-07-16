@@ -511,34 +511,29 @@ select lives_ok(
   'Bob CAN insert a child into his own family');
 
 -- Bob cannot MUTATE Alice's rows (RLS filters silently: 0 rows affected).
-select is(
-  (with u as (update public.moments set note = 'hacked'
-              where id = '00000000-0000-0000-0000-0000000000d1' returning 1)
-   select count(*) from u), 0::bigint,
+with u as (update public.moments set note = 'hacked'
+           where id = '00000000-0000-0000-0000-0000000000d1' returning 1)
+select is((select count(*) from u), 0::bigint,
   'Bob cannot update Alice''s moment');
 
-select is(
-  (with d as (delete from public.moments
-              where id = '00000000-0000-0000-0000-0000000000d1' returning 1)
-   select count(*) from d), 0::bigint,
+with d as (delete from public.moments
+           where id = '00000000-0000-0000-0000-0000000000d1' returning 1)
+select is((select count(*) from d), 0::bigint,
   'Bob cannot delete Alice''s moment');
 
-select is(
-  (with u as (update public.children set name = 'hacked'
-              where id = '00000000-0000-0000-0000-0000000000ca' returning 1)
-   select count(*) from u), 0::bigint,
+with u as (update public.children set name = 'hacked'
+           where id = '00000000-0000-0000-0000-0000000000ca' returning 1)
+select is((select count(*) from u), 0::bigint,
   'Bob cannot update Alice''s child');
 
-select is(
-  (with d as (delete from public.children
-              where id = '00000000-0000-0000-0000-0000000000ca' returning 1)
-   select count(*) from d), 0::bigint,
+with d as (delete from public.children
+           where id = '00000000-0000-0000-0000-0000000000ca' returning 1)
+select is((select count(*) from d), 0::bigint,
   'Bob cannot delete Alice''s child');
 
-select is(
-  (with u as (update public.families set name = 'hacked'
-              where id = '00000000-0000-0000-0000-0000000000fa' returning 1)
-   select count(*) from u), 0::bigint,
+with u as (update public.families set name = 'hacked'
+           where id = '00000000-0000-0000-0000-0000000000fa' returning 1)
+select is((select count(*) from u), 0::bigint,
   'Bob cannot rename Alice''s family');
 
 select throws_ok(
@@ -547,10 +542,9 @@ select throws_ok(
   '42501', null,
   'Bob cannot attach a photo to Alice''s moment');
 
-select is(
-  (with d as (delete from public.moment_photos
-              where id = '00000000-0000-0000-0000-0000000000e1' returning 1)
-   select count(*) from d), 0::bigint,
+with d as (delete from public.moment_photos
+           where id = '00000000-0000-0000-0000-0000000000e1' returning 1)
+select is((select count(*) from d), 0::bigint,
   'Bob cannot delete Alice''s photo');
 
 select is((select count(*) from public.invites), 0::bigint,
@@ -560,16 +554,14 @@ select is((select count(*) from public.invites), 0::bigint,
 select set_config('request.jwt.claims',
   '{"sub": "00000000-0000-0000-0000-0000000000a1", "role": "authenticated"}', true);
 
-select is(
-  (with u as (update public.moments set note = 'Her first smile!'
-              where id = '00000000-0000-0000-0000-0000000000d1' returning 1)
-   select count(*) from u), 1::bigint,
+with u as (update public.moments set note = 'Her first smile!'
+           where id = '00000000-0000-0000-0000-0000000000d1' returning 1)
+select is((select count(*) from u), 1::bigint,
   'Alice can update her own moment');
 
-select is(
-  (with u as (update public.families set name = 'The Alices'
-              where id = '00000000-0000-0000-0000-0000000000fa' returning 1)
-   select count(*) from u), 1::bigint,
+with u as (update public.families set name = 'The Alices'
+           where id = '00000000-0000-0000-0000-0000000000fa' returning 1)
+select is((select count(*) from u), 1::bigint,
   'Alice can rename her own family');
 
 select throws_ok(
@@ -581,6 +573,10 @@ select throws_ok(
 select * from finish();
 rollback;
 ```
+
+(Why the odd top-level `with … select is(…)` shape: Postgres requires data-modifying
+CTEs at the statement's top level — they cannot be nested inside `is()`'s scalar
+subquery. `ERROR: WITH clause containing a data-modifying statement must be at the top level`.)
 
 - [ ] **Step 2: Run tests to verify they fail**
 
