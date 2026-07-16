@@ -86,7 +86,7 @@ alter table public.invites enable row level security;
 -- `service_role` (edge functions / future admin flows) hit "permission denied"
 -- before RLS is consulted. RLS + policies remain the security boundary.
 grant select, insert, update, delete
-  on public.families, public.family_members, public.children,
+  on public.family_members, public.children,
      public.moment_photos, public.invites
   to authenticated, service_role;
 
@@ -96,3 +96,10 @@ grant select, insert, delete on public.moments to authenticated, service_role;
 grant update (milestone_id, custom_title, occurred_on, note)
   on public.moments to authenticated;
 grant update on public.moments to service_role;
+
+-- families: likewise column-scoped — members may edit only the display name.
+-- created_by is provenance and must not be spoofable (Plan 4 builds
+-- ownership transfer on top of trustworthy membership/provenance data).
+grant select, insert, delete on public.families to authenticated, service_role;
+grant update (name) on public.families to authenticated;
+grant update on public.families to service_role;
