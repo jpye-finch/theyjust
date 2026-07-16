@@ -562,6 +562,14 @@ $$;
 
 -- RLS was already enabled for all six tables in the schema migration (Task 4).
 
+-- Supabase's default ACLs grant TRUNCATE (not subject to RLS) to the API roles
+-- on new tables. PostgREST never exposes TRUNCATE, but revoke it anyway so no
+-- future invoker-rights SQL path can wipe a table.
+revoke truncate on all tables in schema public from anon, authenticated;
+-- …and for tables created by future migrations (default ACLs re-grant otherwise):
+alter default privileges in schema public
+  revoke truncate on tables from anon, authenticated;
+
 -- families: members read/update; creation only via create_family RPC (Task 6);
 -- no direct insert/delete policy for now (owner-deletion flow is Plan 4).
 create policy families_select on public.families
