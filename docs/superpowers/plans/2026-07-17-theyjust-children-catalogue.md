@@ -1127,9 +1127,11 @@ import { fireEvent, render, screen, userEvent } from '@testing-library/react-nat
 import { ChildForm } from '../ChildForm';
 
 // userEvent has no Switch interaction; fireEvent 'valueChange' is the
-// documented way to drive RN Switch in RNTL.
-function togglePremature(value: boolean) {
-  fireEvent(screen.getByRole('switch'), 'valueChange', value);
+// documented way to drive RN Switch in RNTL. In RNTL v14 fireEvent is async
+// (wraps the handler in act()) — it must be awaited or the re-render hasn't
+// flushed when the next query runs.
+async function togglePremature(value: boolean) {
+  await fireEvent(screen.getByRole('switch'), 'valueChange', value);
 }
 
 describe('ChildForm', () => {
@@ -1157,7 +1159,7 @@ describe('ChildForm', () => {
     await user.type(screen.getByPlaceholderText('Name'), 'Aria');
     await user.type(screen.getByPlaceholderText('Date of birth (YYYY-MM-DD)'), '2026-01-15');
     expect(screen.queryByPlaceholderText('Due date (YYYY-MM-DD)')).toBeNull();
-    togglePremature(true);
+    await togglePremature(true);
     await user.type(screen.getByPlaceholderText('Due date (YYYY-MM-DD)'), '2026-03-20');
     await user.press(screen.getByText('Add child'));
 
@@ -1188,7 +1190,7 @@ describe('ChildForm', () => {
 
     await user.type(screen.getByPlaceholderText('Name'), 'Aria');
     await user.type(screen.getByPlaceholderText('Date of birth (YYYY-MM-DD)'), '2026-01-15');
-    togglePremature(true);
+    await togglePremature(true);
     await user.type(screen.getByPlaceholderText('Due date (YYYY-MM-DD)'), '2026-01-10');
     await user.press(screen.getByText('Add child'));
 
