@@ -990,6 +990,18 @@ describe('AuthForm', () => {
     await render(<AuthForm submitLabel="Sign in" onSubmit={jest.fn()} error="Invalid login credentials" />);
     expect(screen.getByText('Invalid login credentials')).toBeTruthy();
   });
+
+  it('does not submit while busy', async () => {
+    const onSubmit = jest.fn();
+    const user = userEvent.setup();
+    await render(<AuthForm submitLabel="Sign in" onSubmit={onSubmit} busy />);
+
+    await user.type(screen.getByPlaceholderText('Email'), 'jo@example.com');
+    await user.type(screen.getByPlaceholderText('Password'), 'hunter22');
+    await user.press(screen.getByText('…'));
+
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
 });
 ```
 
@@ -1033,13 +1045,15 @@ export function AuthForm({ submitLabel, onSubmit, error, busy }: Props) {
     onSubmit(trimmed, password);
   };
 
-  const message = error ?? localError;
+  // Local validation is freshest — it must not be masked by a stale server error.
+  const message = localError ?? error;
 
   return (
     <View style={styles.container}>
       <TextInput
         style={styles.input}
         placeholder="Email"
+        accessibilityLabel="Email"
         autoCapitalize="none"
         autoComplete="email"
         keyboardType="email-address"
@@ -1049,12 +1063,17 @@ export function AuthForm({ submitLabel, onSubmit, error, busy }: Props) {
       <TextInput
         style={styles.input}
         placeholder="Password"
+        accessibilityLabel="Password"
         secureTextEntry
         autoComplete="password"
         value={password}
         onChangeText={setPassword}
       />
-      {message ? <Text style={styles.error}>{message}</Text> : null}
+      {message ? (
+        <Text style={styles.error} role="alert" accessibilityLiveRegion="polite">
+          {message}
+        </Text>
+      ) : null}
       <Pressable style={styles.button} onPress={handlePress} disabled={busy}>
         <Text style={styles.buttonText}>{busy ? '…' : submitLabel}</Text>
       </Pressable>
@@ -1088,7 +1107,7 @@ const styles = StyleSheet.create({
 npm test -- AuthForm
 ```
 
-Expected: 3 passed.
+Expected: 4 passed.
 
 - [ ] **Step 5: Create `src/features/auth/useSession.ts`**
 
@@ -1102,7 +1121,9 @@ export function useSession() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     supabase.auth.getSession().then(({ data }) => {
+      if (cancelled) return;
       setSession(data.session);
       setLoading(false);
     });
@@ -1111,7 +1132,10 @@ export function useSession() {
     } = supabase.auth.onAuthStateChange((_event, next) => {
       setSession(next);
     });
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
 
   return { session, loading };
@@ -1121,25 +1145,12 @@ export function useSession() {
 - [ ] **Step 6: Root layout with auth gate — `src/app/_layout.tsx` (replace template file)**
 
 ```tsx
-import { Stack, useRouter, useSegments } from 'expo-router';
-import { useEffect } from 'react';
+import { Stack } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 import { useSession } from '@/features/auth/useSession';
 
 export default function RootLayout() {
   const { session, loading } = useSession();
-  const segments = useSegments();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (loading) return;
-    const inAuthGroup = segments[0] === '(auth)';
-    if (!session && !inAuthGroup) {
-      router.replace('/(auth)/sign-in');
-    } else if (session && inAuthGroup) {
-      router.replace('/(app)');
-    }
-  }, [session, loading, segments, router]);
 
   if (loading) {
     return (
@@ -1149,7 +1160,16 @@ export default function RootLayout() {
     );
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Protected guard={!!session}>
+        <Stack.Screen name="(app)" />
+      </Stack.Protected>
+      <Stack.Protected guard={!session}>
+        <Stack.Screen name="(auth)" />
+      </Stack.Protected>
+    </Stack>
+  );
 }
 ```
 
@@ -1293,7 +1313,11 @@ rm -f src/app/index.tsx
 npx tsc --noEmit && npm test
 ```
 
-Expected: typecheck clean; 3 suites / 6 tests pass (sanity 1, supabase-import 2, AuthForm 3).
+Expected: typecheck clean; 3 suites / 7 tests pass (sanity 1, supabase-import 2, AuthForm 4).
+
+(`Stack.Protected` — expo-router 57's declarative guard — replaces the older
+imperative useEffect/useSegments redirect gate: guard-false screens are never
+mounted, so there is no one-frame flash of protected content.)
 
 Manual pass (Supabase must be running: `supabase status`):
 
