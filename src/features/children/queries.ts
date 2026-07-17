@@ -15,8 +15,12 @@ export type ChildInput = {
   dueDate: string | null;
 };
 
-// create_family is idempotent (Plan 1): for an existing owner it returns the
-// owned family; for a brand-new user it creates one. Either way: one call.
+// create_family is idempotent (Plan 1): for any existing membership it returns
+// that family; for a brand-new user it creates one. Either way: one call.
+// The trap: an owner-only lookup would fork an invited co-parent (role
+// 'parent', Plan 4) into a phantom family instead of their inviter's — the RPC
+// returns the family of ANY existing membership, enforced at the DB level; see
+// migration 20260716000003 and its pgTAP case.
 export async function ensureFamilyId(): Promise<string> {
   const { data, error } = await supabase.rpc('create_family', { family_name: null });
   if (error) throw error;

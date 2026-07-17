@@ -1,4 +1,4 @@
-import { createChild, ensureFamilyId, fetchChildren } from '../queries';
+import { createChild, ensureFamilyId, fetchChildren, updateChild } from '../queries';
 import { supabase } from '../../../lib/supabase';
 
 jest.mock('../../../lib/supabase', () => ({
@@ -52,5 +52,29 @@ describe('createChild', () => {
       date_of_birth: '2026-01-01',
       due_date: null,
     });
+  });
+});
+
+describe('updateChild', () => {
+  it('updates the child by id with snake_case columns', async () => {
+    const single = jest.fn().mockResolvedValue({ data: { id: 'c1' }, error: null });
+    const eq = jest.fn().mockReturnValue({ select: () => ({ single }) });
+    const update = jest.fn().mockReturnValue({ eq });
+    mockedFrom.mockReturnValue({ update });
+
+    const child = await updateChild('c1', {
+      name: 'Aria',
+      dateOfBirth: '2026-01-01',
+      dueDate: '2026-03-01',
+    });
+
+    expect(child).toEqual({ id: 'c1' });
+    expect(mockedFrom).toHaveBeenCalledWith('children');
+    expect(update).toHaveBeenCalledWith({
+      name: 'Aria',
+      date_of_birth: '2026-01-01',
+      due_date: '2026-03-01',
+    });
+    expect(eq).toHaveBeenCalledWith('id', 'c1');
   });
 });
