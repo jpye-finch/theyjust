@@ -904,7 +904,15 @@ Jest doesn't load `.env`, so importing `src/lib/supabase.ts` in any test would h
 ```js
 process.env.EXPO_PUBLIC_SUPABASE_URL = 'http://127.0.0.1:54321';
 process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
+
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);
 ```
+
+(The AsyncStorage mock is required the moment any test imports the real
+`src/lib/supabase.ts`: the package's native module is always null under Jest,
+and the official mock ships inside the package itself.)
 
 Add to the `jest` block in `package.json`:
 
@@ -951,37 +959,43 @@ Run `npm test` — all suites pass.
 Create `src/features/auth/__tests__/AuthForm.test.tsx`:
 
 ```tsx
-import { render, fireEvent, screen } from '@testing-library/react-native';
+import { render, screen, userEvent } from '@testing-library/react-native';
 import { AuthForm } from '../AuthForm';
 
 describe('AuthForm', () => {
-  it('submits trimmed email and password', () => {
+  it('submits trimmed email and password', async () => {
     const onSubmit = jest.fn();
-    render(<AuthForm submitLabel="Sign in" onSubmit={onSubmit} />);
+    const user = userEvent.setup();
+    await render(<AuthForm submitLabel="Sign in" onSubmit={onSubmit} />);
 
-    fireEvent.changeText(screen.getByPlaceholderText('Email'), '  jo@example.com ');
-    fireEvent.changeText(screen.getByPlaceholderText('Password'), 'hunter22');
-    fireEvent.press(screen.getByText('Sign in'));
+    await user.type(screen.getByPlaceholderText('Email'), '  jo@example.com ');
+    await user.type(screen.getByPlaceholderText('Password'), 'hunter22');
+    await user.press(screen.getByText('Sign in'));
 
     expect(onSubmit).toHaveBeenCalledWith('jo@example.com', 'hunter22');
   });
 
-  it('blocks submit and shows a message when fields are empty', () => {
+  it('blocks submit and shows a message when fields are empty', async () => {
     const onSubmit = jest.fn();
-    render(<AuthForm submitLabel="Sign in" onSubmit={onSubmit} />);
+    const user = userEvent.setup();
+    await render(<AuthForm submitLabel="Sign in" onSubmit={onSubmit} />);
 
-    fireEvent.press(screen.getByText('Sign in'));
+    await user.press(screen.getByText('Sign in'));
 
     expect(onSubmit).not.toHaveBeenCalled();
     expect(screen.getByText('Enter your email and password')).toBeTruthy();
   });
 
-  it('shows the error passed in', () => {
-    render(<AuthForm submitLabel="Sign in" onSubmit={jest.fn()} error="Invalid login credentials" />);
+  it('shows the error passed in', async () => {
+    await render(<AuthForm submitLabel="Sign in" onSubmit={jest.fn()} error="Invalid login credentials" />);
     expect(screen.getByText('Invalid login credentials')).toBeTruthy();
   });
 });
 ```
+
+(RNTL v14 — what `expo install` pins for SDK 57 — made `render()` async and
+prefers `userEvent` over `fireEvent`; `user.press` on the label Text bubbles up
+to the parent Pressable.)
 
 - [ ] **Step 2: Run test to verify it fails**
 
@@ -1279,7 +1293,7 @@ rm -f src/app/index.tsx
 npx tsc --noEmit && npm test
 ```
 
-Expected: typecheck clean; 4 tests pass.
+Expected: typecheck clean; 3 suites / 6 tests pass (sanity 1, supabase-import 2, AuthForm 3).
 
 Manual pass (Supabase must be running: `supabase status`):
 
