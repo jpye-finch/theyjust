@@ -4,6 +4,7 @@ import { MilestoneRow } from '../MilestoneRow';
 import { SIGNPOST_TEXT } from '../rangePhrase';
 
 const firstSteps = CATALOGUE.find((e) => e.id === 'first_steps')!;
+const crawled = CATALOGUE.find((e) => e.id === 'crawled')!;
 
 describe('MilestoneRow', () => {
   it('renders an achieved milestone with a tick and age', async () => {
@@ -23,5 +24,12 @@ describe('MilestoneRow', () => {
   it('renders the gentle signpost well past the window', async () => {
     await render(<MilestoneRow entry={firstSteps} comparisonMonths={21} achievedAgeText={null} />);
     expect(screen.getByText(SIGNPOST_TEXT)).toBeTruthy();
+  });
+
+  it('never signposts a skippable milestone, even well past its window', async () => {
+    // crawled is skippable (many children never crawl) — the row must not
+    // surface the signpost that would false-alarm those families.
+    await render(<MilestoneRow entry={crawled} comparisonMonths={24} achievedAgeText={null} />);
+    expect(screen.queryByText(SIGNPOST_TEXT)).toBeNull();
   });
 });

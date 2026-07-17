@@ -1400,6 +1400,24 @@ describe('achievedAgeTexts', () => {
     );
     expect(map).toEqual({ rolled_over: '4 months, 2 weeks' });
   });
+
+  it('returns an empty map for no moments', () => {
+    expect(achievedAgeTexts([], '2026-01-15')).toEqual({});
+  });
+
+  it('maps several distinct milestones in one pass', () => {
+    const map = achievedAgeTexts(
+      [
+        { milestone_id: 'rolled_over', occurred_on: '2026-05-29' },
+        { milestone_id: 'first_smile', occurred_on: '2026-03-01' },
+      ],
+      '2026-01-15',
+    );
+    expect(map).toEqual({
+      rolled_over: '4 months, 2 weeks',
+      first_smile: '1 month, 2 weeks',
+    });
+  });
 });
 ```
 
@@ -1412,6 +1430,7 @@ import { MilestoneRow } from '../MilestoneRow';
 import { SIGNPOST_TEXT } from '../rangePhrase';
 
 const firstSteps = CATALOGUE.find((e) => e.id === 'first_steps')!;
+const crawled = CATALOGUE.find((e) => e.id === 'crawled')!;
 
 describe('MilestoneRow', () => {
   it('renders an achieved milestone with a tick and age', async () => {
@@ -1431,6 +1450,13 @@ describe('MilestoneRow', () => {
   it('renders the gentle signpost well past the window', async () => {
     await render(<MilestoneRow entry={firstSteps} comparisonMonths={21} achievedAgeText={null} />);
     expect(screen.getByText(SIGNPOST_TEXT)).toBeTruthy();
+  });
+
+  it('never signposts a skippable milestone, even well past its window', async () => {
+    // crawled is skippable (many children never crawl) — the row must not
+    // surface the signpost that would false-alarm those families.
+    await render(<MilestoneRow entry={crawled} comparisonMonths={24} achievedAgeText={null} />);
+    expect(screen.queryByText(SIGNPOST_TEXT)).toBeNull();
   });
 });
 ```
@@ -1549,7 +1575,7 @@ const styles = StyleSheet.create({
 npm test -- achievements && npm test -- MilestoneRow && npx tsc --noEmit
 ```
 
-Expected: 5 tests pass; tsc exit 0.
+Expected: 8 tests pass (achievements 4, MilestoneRow 4); tsc exit 0.
 
 - [ ] **Step 6: Commit**
 
