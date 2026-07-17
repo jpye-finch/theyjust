@@ -645,7 +645,10 @@ Wraps the native modules: pick from camera/library, resize, upload to Storage, i
 - [ ] **Step 1: Implement `src/features/moments/photoUpload.ts`**
 
 ```ts
-import * as FileSystem from 'expo-file-system';
+// SDK 57 moved the classic file API to /legacy; the main entry's
+// readAsStringAsync is a deprecation stub that throws at runtime (and still
+// type-checks, so tsc can't catch it). The /legacy path has the real impl.
+import * as FileSystem from 'expo-file-system/legacy';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../lib/supabase';
