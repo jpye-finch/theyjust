@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
+import { queryClient } from '../../lib/queryClient';
 import { supabase } from '../../lib/supabase';
 
 export function useSession() {
@@ -15,7 +16,10 @@ export function useSession() {
     });
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, next) => {
+    } = supabase.auth.onAuthStateChange((event, next) => {
+      // A signed-out device must hold no family data in memory: the next
+      // account to sign in must never see the previous family's cache.
+      if (event === 'SIGNED_OUT') queryClient.clear();
       setSession(next);
     });
     return () => {
