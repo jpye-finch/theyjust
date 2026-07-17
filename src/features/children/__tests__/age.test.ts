@@ -96,3 +96,36 @@ describe('formatChildAge', () => {
     );
   });
 });
+
+describe('Date-instant inputs (local calendar semantics)', () => {
+  // jest.setup.js pins TZ=America/Los_Angeles, so late evening local is
+  // already "tomorrow" in UTC — these fail if UTC getters sneak back in.
+  it('reads a Date as the local calendar date, not UTC', () => {
+    expect(ageParts('2026-01-01', new Date(2026, 0, 14, 23, 30))).toEqual({
+      months: 0,
+      weeks: 1,
+    });
+  });
+
+  it('accepts Date instants in childAge', () => {
+    const a = childAge('2026-01-01', null, new Date(2026, 6, 1, 12, 0));
+    expect(a.chronological).toEqual({ months: 6, weeks: 0 });
+  });
+});
+
+describe('boundaries and monotonicity', () => {
+  it('wraps a single month across the year boundary', () => {
+    expect(ageParts('2025-12-15', '2026-01-15')).toEqual({ months: 1, weeks: 0 });
+  });
+
+  it('never decreases as time advances (two years, day by day)', () => {
+    let prev = -1;
+    const start = Date.UTC(2026, 0, 31); // month-end DOB stresses clamping
+    for (let i = 0; i <= 730; i++) {
+      const on = new Date(start + i * 86_400_000).toISOString().slice(0, 10);
+      const m = ageInMonths('2026-01-31', on);
+      expect(m).toBeGreaterThanOrEqual(prev);
+      prev = m;
+    }
+  });
+});

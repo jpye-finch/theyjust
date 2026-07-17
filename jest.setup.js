@@ -1,3 +1,6 @@
+// Deterministic non-UTC timezone: UTC-vs-local leaks must fail in CI too.
+process.env.TZ = 'America/Los_Angeles';
+
 process.env.EXPO_PUBLIC_SUPABASE_URL = 'http://127.0.0.1:54321';
 process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
 

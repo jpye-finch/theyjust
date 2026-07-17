@@ -1,7 +1,8 @@
-// Pure date-only age math. All inputs are ISO date strings (YYYY-MM-DD) or
-// Date objects; internally everything is UTC so device timezones can't shift
-// a birthday. Corrected age (premature babies) counts from the due date and
-// applies until 24 months corrected, per standard clinical practice (spec §5).
+// Pure date-only age math. DB dates arrive as ISO strings (YYYY-MM-DD) and are
+// read as-is; Date instants (a caller's "now") are read as the caller's LOCAL
+// calendar date — the user's wall clock decides what "today" is, and a device
+// timezone can never shift a stored birthday. Corrected age (premature babies)
+// counts from the due date and applies until 24 months corrected (spec §5).
 
 export type AgeParts = { months: number; weeks: number };
 
@@ -18,7 +19,8 @@ const MS_PER_DAY = 86_400_000;
 
 function toUtcDate(d: string | Date): Date {
   if (d instanceof Date) {
-    return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+    // A Date instant means "now": read its LOCAL calendar date.
+    return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
   }
   return new Date(`${d}T00:00:00Z`);
 }
