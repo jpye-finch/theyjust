@@ -137,7 +137,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     typicalStartMonths: 18,
     typicalEndMonths: 24,
     context:
-      'Stairs usually start on all fours with a steadying hand nearby — every supervised trip builds strength and coordination.',
+      'Walking up stairs starts with a steadying hand or the rail — every supervised trip builds strength and coordination.',
     sources: [
       'https://www.cdc.gov/act-early/milestones-in-action/2-years.html',
       'https://www.buckshealthcare.nhs.uk/cyp/pifs/development-guide-from-18-months-to-3-years/',
@@ -272,12 +272,13 @@ export const CATALOGUE: CatalogueEntry[] = [
   {
     id: 'stranger_awareness',
     title: 'Stranger awareness',
-    verbPhrase: 'started noticing strangers',
+    verbPhrase: 'got wary of new faces',
     category: 'social',
     typicalStartMonths: 6,
     typicalEndMonths: 12,
     context:
-      'Wariness of new faces often peaks around 18 months and can linger to three — it is usually a sign of just how strongly they have bonded with you.',
+      'Wariness of new faces is common right up to age three — and it is usually a sign of just how strongly they have bonded with you.',
+    skippable: true,
     sources: [
       'https://www.cdc.gov/act-early/milestones/9-months.html',
       'https://www.nhs.uk/baby/babys-development/behaviour/separation-anxiety/',
@@ -451,8 +452,8 @@ export const CATALOGUE: CatalogueEntry[] = [
   },
   {
     id: 'named_body_part',
-    title: 'Named a body part',
-    verbPhrase: 'pointed out a body part',
+    title: 'Pointed to a body part',
+    verbPhrase: 'pointed to a body part',
     category: 'language',
     typicalStartMonths: 12,
     typicalEndMonths: 24,
@@ -497,12 +498,12 @@ export const CATALOGUE: CatalogueEntry[] = [
     verbPhrase: 'ate their first finger food',
     category: 'feeding',
     typicalStartMonths: 6,
-    typicalEndMonths: 18,
+    typicalEndMonths: 9,
     context:
       'From first tastes around six months, picking food up themselves builds hand-eye coordination as much as it fills tummies.',
     sources: [
       'https://www.nhs.uk/best-start-in-life/baby/weaning/what-to-feed-your-baby/from-around-6-months/',
-      'https://www.cdc.gov/act-early/milestones-in-action/18-months.html',
+      'https://www.cdc.gov/act-early/milestones/9-months.html',
     ],
   },
   {
@@ -510,13 +511,14 @@ export const CATALOGUE: CatalogueEntry[] = [
     title: 'Drank from an open cup',
     verbPhrase: 'drank from an open cup',
     category: 'feeding',
-    typicalStartMonths: 12,
-    typicalEndMonths: 24,
+    typicalStartMonths: 6,
+    typicalEndMonths: 18,
     context:
       'Sips with a steadying hand come first, spills and all — open cups are kindest to growing teeth.',
     sources: [
       'https://www.cdc.gov/act-early/milestones-in-action/1-year.html',
-      'https://www.nhs.uk/best-start-in-life/baby/weaning/what-to-feed-your-baby/over-12-months/',
+      'https://www.nhs.uk/best-start-in-life/baby/weaning/what-to-feed-your-baby/from-around-6-months/',
+      'https://www.cdc.gov/act-early/milestones/18-months.html',
     ],
   },
   {
@@ -537,8 +539,8 @@ export const CATALOGUE: CatalogueEntry[] = [
     title: 'Ate a whole meal themselves',
     verbPhrase: 'fed themselves a whole meal',
     category: 'feeding',
-    typicalStartMonths: 20,
-    typicalEndMonths: 30,
+    typicalStartMonths: 18,
+    typicalEndMonths: 36,
     context:
       'Around two, most toddlers are keen to run the whole meal themselves — smaller portions of the family food are perfect.',
     sources: [
@@ -591,7 +593,7 @@ export const CATALOGUE: CatalogueEntry[] = [
   {
     id: 'brushed_teeth_helped',
     title: 'Brushed teeth with help',
-    verbPhrase: 'brushed their teeth with a helping hand',
+    verbPhrase: 'took a turn brushing their teeth',
     category: 'feeding',
     typicalStartMonths: 36,
     typicalEndMonths: 72,
