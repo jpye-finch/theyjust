@@ -976,6 +976,19 @@ describe('CaptureForm', () => {
     );
     expect(screen.getByText('2 photos added')).toBeTruthy();
   });
+
+  it('uses the singular label for a single photo', async () => {
+    await render(
+      <CaptureForm
+        presetTitle="They just smiled!"
+        defaultOccurredOn="2026-05-01"
+        photoCount={1}
+        onPickPhoto={jest.fn()}
+        onSubmit={jest.fn()}
+      />,
+    );
+    expect(screen.getByText('1 photo added')).toBeTruthy();
+  });
 });
 ```
 
@@ -995,6 +1008,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Field } from '@/components/Field';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { color, font, radius, space, type } from '@/theme/tokens';
+import { isRealDate } from '../../lib/date';
 
 export type CaptureSubmit = {
   customTitle: string | null;
@@ -1011,12 +1025,6 @@ type Props = {
   busy?: boolean;
 };
 
-function isRealDate(iso: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false;
-  const d = new Date(`${iso}T00:00:00Z`);
-  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === iso;
-}
-
 export function CaptureForm({
   presetTitle,
   defaultOccurredOn,
@@ -1025,6 +1033,8 @@ export function CaptureForm({
   onSubmit,
   busy,
 }: Props) {
+  // defaultOccurredOn seeds state once; the capture screen mounts this form fresh
+  // per moment, so the prop stays stable for the component's lifetime.
   const [customTitle, setCustomTitle] = useState('');
   const [occurredOn, setOccurredOn] = useState(defaultOccurredOn);
   const [note, setNote] = useState('');
@@ -1113,13 +1123,109 @@ const styles = StyleSheet.create({
 npm test -- CaptureForm && npx tsc --noEmit
 ```
 
-Expected: 4 passed; tsc exit 0.
+Expected: 5 passed; tsc exit 0.
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add src/features/moments/CaptureForm.tsx src/features/moments/__tests__/CaptureForm.test.tsx
 git commit -m "feat: capture form — preset/custom title, date, note, photo control"
+```
+
+---
+
+### Task 7b: Extract the shared `isRealDate` validator (review follow-up)
+
+The capture form and `ChildForm` had a byte-identical `isRealDate`. Move it to one pure module both import, so the Task 12 date-polish lands in a single place. (The Task 7 CaptureForm block above already imports it; this task creates the module and repoints ChildForm.)
+
+**Files:**
+- Create: `src/lib/date.ts`
+- Create: `src/lib/__tests__/date.test.ts`
+- Modify: `src/features/children/ChildForm.tsx` (delete the inline `isRealDate`, import the shared one)
+
+- [ ] **Step 1: Write the failing test**
+
+Create `src/lib/__tests__/date.test.ts`:
+
+```ts
+import { isRealDate } from '../date';
+
+describe('isRealDate', () => {
+  it('accepts real calendar dates, including leap days', () => {
+    expect(isRealDate('2026-05-01')).toBe(true);
+    expect(isRealDate('2024-02-29')).toBe(true);
+  });
+
+  it('rejects malformed strings', () => {
+    expect(isRealDate('2026-5-1')).toBe(false);
+    expect(isRealDate('01/05/2026')).toBe(false);
+    expect(isRealDate('')).toBe(false);
+  });
+
+  it('rejects impossible calendar dates', () => {
+    expect(isRealDate('2026-02-30')).toBe(false);
+    expect(isRealDate('2025-02-29')).toBe(false);
+    expect(isRealDate('2026-13-01')).toBe(false);
+    expect(isRealDate('2026-00-10')).toBe(false);
+  });
+});
+```
+
+- [ ] **Step 2: Run it to verify it fails**
+
+```bash
+npm test -- lib/__tests__/date
+```
+
+Expected: FAIL — `Cannot find module '../date'`.
+
+- [ ] **Step 3: Create `src/lib/date.ts`**
+
+```ts
+// True iff `iso` is a real YYYY-MM-DD calendar date. A UTC round-trip rejects
+// out-of-range days (2026-02-30), non-leap Feb 29, and bad months, so every form
+// validates dates identically. Shared by ChildForm and CaptureForm.
+export function isRealDate(iso: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false;
+  const d = new Date(`${iso}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === iso;
+}
+```
+
+- [ ] **Step 4: Repoint `ChildForm` to the shared validator**
+
+In `src/features/children/ChildForm.tsx`, delete the local function:
+
+```tsx
+function isRealDate(iso: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false;
+  const d = new Date(`${iso}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === iso;
+}
+
+```
+
+and add its import after the `./queries` import so the top of the file reads:
+
+```tsx
+import { color, font, space, type } from '@/theme/tokens';
+import type { ChildInput } from './queries';
+import { isRealDate } from '../../lib/date';
+```
+
+- [ ] **Step 5: Run the full suite and typecheck**
+
+```bash
+npm test && npx tsc --noEmit
+```
+
+Expected: all suites green (ChildForm + CaptureForm behaviour unchanged, new date suite passing); tsc exit 0.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/lib/date.ts src/lib/__tests__/date.test.ts src/features/children/ChildForm.tsx
+git commit -m "refactor: extract shared isRealDate to lib/date (review)"
 ```
 
 ---
