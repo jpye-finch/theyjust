@@ -26,7 +26,7 @@ export type CatalogueEntry = {
    * suppresses the past-window signpost, which would otherwise false-alarm.
    */
   skippable?: boolean;
-  /** ≥2 URLs, hosts limited to who.int / cdc.gov / nhs.uk / nhsinform.scot. */
+  /** ≥2 URLs; hosts who.int / cdc.gov / nhs.uk / nhsinform.scot, or subdomains thereof. */
   sources: string[];
 };
 
