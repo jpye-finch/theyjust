@@ -1349,17 +1349,25 @@ git commit -m "feat: email auth with session-gated routing"
 name: CI
 on:
   push:
-    branches: [main]
+    branches: [main, foundation]
   pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   app:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
       - run: npx tsc --noEmit
@@ -1367,11 +1375,12 @@ jobs:
 
   db:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.109.1
       - run: supabase db start
       - run: supabase test db
 ```
