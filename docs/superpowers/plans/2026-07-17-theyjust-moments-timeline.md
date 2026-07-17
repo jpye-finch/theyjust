@@ -4,7 +4,7 @@
 
 **Goal:** A parent can capture a moment (a milestone or a custom "first", with a date, a note, and an optional photo), see it land instantly in a per-child Timeline, open it to edit or delete, and share a rendered keepsake card.
 
-**Architecture:** Moments already have their table + RLS from Plan 1; this plan adds the Storage bucket (private, family-scoped RLS) for photo files, a moments data layer over TanStack Query with optimistic create, a photo pipeline (pick → resize → upload → row), and four UI surfaces (Timeline home, capture modal, moment detail, share card). Photos are optional — a text-only moment is a first-class moment. Optimistic create makes a moment appear in the Timeline immediately; photo upload runs after the row exists with per-photo retry. (A queue that survives full app restart, spec §7, is deliberately deferred — the moment row is the memory and is saved first; a failed photo shows tap-to-retry.)
+**Architecture:** Moments already have their table + RLS from Plan 1; this plan adds the Storage bucket (private, family-scoped RLS) for photo files, a moments data layer over TanStack Query, a photo pipeline (pick → resize → upload → row), and four UI surfaces (Timeline home, capture modal, moment detail, share card). Photos are optional — a text-only moment is a first-class moment. A create/edit/delete invalidates the `['timeline', childId]` query, so the Timeline reconciles against the server on the next tick (near-instant against a local or nearby backend); true optimistic-with-rollback (`onMutate` cache writes) and a queue that survives full app restart (spec §7) are deliberately deferred — the moment row is the memory and is saved before its photos, so a failed photo shows tap-to-retry without losing the moment.
 
 **Tech Stack:** Existing Expo SDK 57 + TS + jest-expo + Supabase + TanStack Query, plus `expo-image-picker` (camera/library; web falls back to the browser file input), `expo-image-manipulator` (resize/compress), `expo-file-system`, `react-native-view-shot` (render the share card to an image), `expo-sharing`.
 
@@ -388,7 +388,7 @@ git commit -m "feat: photo storage path + resize params"
 
 ### Task 4: Moment data layer (TDD on the logic)
 
-Timeline fetch (moments + their photos for a child, newest first), and create/update/delete with a TanStack Query optimistic create so a new moment appears instantly.
+Timeline fetch (moments + their photos for a child, newest first), and create/update/delete hooks that invalidate the child's timeline query so the feed reconciles right after a write.
 
 **Files:**
 - Create: `src/features/moments/momentQueries.ts`
@@ -403,11 +403,11 @@ import { createMoment, deleteMoment, fetchTimeline, updateMoment } from '../mome
 import { supabase } from '../../../lib/supabase';
 
 jest.mock('../../../lib/supabase', () => ({
-  supabase: { from: jest.fn(), auth: { getUser: jest.fn() } },
+  supabase: { from: jest.fn(), auth: { getSession: jest.fn() } },
 }));
 
 const mockedFrom = supabase.from as jest.Mock;
-const mockedGetUser = supabase.auth.getUser as jest.Mock;
+const mockedGetSession = supabase.auth.getSession as jest.Mock;
 
 afterEach(() => jest.clearAllMocks());
 
@@ -428,7 +428,7 @@ describe('fetchTimeline', () => {
 
 describe('createMoment', () => {
   it('stamps logged_by from the signed-in user and inserts', async () => {
-    mockedGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
+    mockedGetSession.mockResolvedValue({ data: { session: { user: { id: 'user-1' } } }, error: null });
     const single = jest.fn().mockResolvedValue({ data: { id: 'm1' }, error: null });
     const insert = jest.fn().mockReturnValue({ select: () => ({ single }) });
     mockedFrom.mockReturnValue({ insert });
@@ -453,7 +453,7 @@ describe('createMoment', () => {
   });
 
   it('throws if there is no signed-in user', async () => {
-    mockedGetUser.mockResolvedValue({ data: { user: null }, error: null });
+    mockedGetSession.mockResolvedValue({ data: { session: null }, error: null });
     await expect(
       createMoment({ childId: 'c', milestoneId: 'x', customTitle: null, occurredOn: '2026-01-01', note: '' }),
     ).rejects.toThrow('Not signed in');
@@ -544,8 +544,10 @@ export async function fetchTimeline(childId: string): Promise<Moment[]> {
 }
 
 export async function createMoment(input: NewMoment): Promise<Moment> {
-  const { data: userData } = await supabase.auth.getUser();
-  const userId = userData.user?.id;
+  // getSession() reads the local session (no network hop); RLS still enforces
+  // logged_by = auth.uid() server-side, so a stale id would be rejected, not trusted.
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user.id;
   if (!userId) throw new Error('Not signed in');
   const { data, error } = await supabase
     .from('moments')
@@ -563,8 +565,10 @@ export async function createMoment(input: NewMoment): Promise<Moment> {
   return data as Moment;
 }
 
-// occurred_on + note are the only fields a moment edit touches; milestone_id,
-// child_id, and logged_by are locked at the grant layer (Plan 1).
+// occurred_on + note are the only fields this app-level edit sends. child_id,
+// id, created_at, and logged_by are locked out of Plan 1's column-scoped update
+// grant; milestone_id/custom_title are grantable there but intentionally
+// untouched here (MVP has no "recategorise this moment" flow).
 export async function updateMoment(id: string, edit: MomentEdit): Promise<Moment> {
   const { data, error } = await supabase
     .from('moments')
