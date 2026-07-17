@@ -1,7 +1,9 @@
 -- The only function end users call directly: bootstraps a brand-new account
 -- past RLS (there is deliberately no insert policy on families/family_members).
--- Idempotent for onboarding: a retried or double-tapped call returns the
--- already-owned family instead of forking the user into a second one.
+-- Idempotent for ANY existing membership, not just owners: a retried or
+-- double-tapped call — or an invited co-parent (role 'parent', Plan 4) calling
+-- it during onboarding — returns the family the user already belongs to
+-- instead of forking them into a phantom family of their own.
 create or replace function public.create_family(family_name text)
 returns uuid
 language plpgsql
@@ -17,12 +19,12 @@ begin
 
   -- Serialise concurrent calls from the same user (double-tap, network retry):
   -- without this, two READ COMMITTED transactions could both pass the
-  -- already-owns-a-family check below and each create a family.
+  -- already-a-member check below and each create a family.
   perform pg_advisory_xact_lock(hashtext('create_family:' || auth.uid()::text));
 
   select family_id into fam_id
     from public.family_members
-   where user_id = auth.uid() and role = 'owner'
+   where user_id = auth.uid()
    limit 1;
   if fam_id is not null then
     return fam_id;

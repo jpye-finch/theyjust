@@ -1,10 +1,11 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(10);
+select plan(12);
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-0000000000e1', 'newparent@test.local'),
-  ('00000000-0000-0000-0000-0000000000e2', 'otherparent@test.local');
+  ('00000000-0000-0000-0000-0000000000e2', 'otherparent@test.local'),
+  ('00000000-0000-0000-0000-0000000000e3', 'coparent@test.local');
 
 set local role authenticated;
 select set_config('request.jwt.claims',
@@ -43,6 +44,30 @@ select lives_ok(
   'a fresh user can create a family with a blank name');
 select is((select name from public.families), 'My family',
   'blank names fall back to the default');
+
+-- An invited co-parent (role 'parent', arriving in Plan 4) already belongs to
+-- their inviter's family: create_family must return THAT family, never fork
+-- them into a phantom family of their own. Membership is seeded as superuser
+-- because invites don't exist yet.
+reset role;
+insert into public.family_members (family_id, user_id, role)
+values (
+  (select id from public.families where name = 'Pye-Finch family'),
+  '00000000-0000-0000-0000-0000000000e3',
+  'parent');
+
+set local role authenticated;
+select set_config('request.jwt.claims',
+  '{"sub": "00000000-0000-0000-0000-0000000000e3", "role": "authenticated"}', true);
+
+select is(
+  public.create_family('Should not exist'),
+  (select id from public.families where name = 'Pye-Finch family'),
+  'an invited co-parent gets their inviter''s family back — no phantom fork');
+
+reset role;
+select is((select count(*) from public.families), 2::bigint,
+  'and the total family count is unchanged');
 
 -- Anonymous callers are rejected at the grant layer (fail closed): the
 -- migration revokes EXECUTE from anon, so the call never reaches the body.
