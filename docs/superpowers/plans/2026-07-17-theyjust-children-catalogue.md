@@ -805,7 +805,7 @@ Special note: `crawled` — some children skip crawling entirely; the context se
 
 **Files:**
 - Modify: `src/features/milestones/catalogue.ts` (add 35 entries, keep category grouping order: motor, social, language, feeding)
-- Modify: `src/features/milestones/__tests__/catalogue.test.ts` (one line: `EXPECTED_MILESTONE_COUNT = 4` → `40`)
+- Modify: `src/features/milestones/__tests__/catalogue.test.ts` (one line: `EXPECTED_MILESTONE_COUNT = 5` → `40`)
 
 - [ ] **Step 1: Bump the count to 40**
 
