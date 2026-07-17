@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { color, font, space, type } from '@/theme/tokens';
 import type { CatalogueEntry } from './catalogue';
 import { milestoneStatus } from './rangePhrase';
 
@@ -12,10 +13,11 @@ export function MilestoneRow({ entry, comparisonMonths, achievedAgeText }: Props
   const status = milestoneStatus(entry, comparisonMonths, achievedAgeText);
 
   if (status.kind === 'achieved') {
+    // An achieved first reads as ink-stamped: damson type on a faint damson wash.
     return (
-      <View style={styles.row}>
+      <View style={[styles.row, styles.rowAchieved]}>
         <Text style={styles.titleAchieved}>{`✓ ${entry.title}`}</Text>
-        <Text style={styles.subtitle}>{`At ${status.ageText}`}</Text>
+        <Text style={styles.ageAchieved}>{`At ${status.ageText}`}</Text>
       </View>
     );
   }
@@ -33,14 +35,23 @@ export function MilestoneRow({ entry, comparisonMonths, achievedAgeText }: Props
 
 const styles = StyleSheet.create({
   row: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#ddd',
-    gap: 2,
+    paddingVertical: space.md,
+    paddingHorizontal: space.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: color.rule,
+    gap: space.xs,
+    backgroundColor: color.paper,
   },
-  title: { fontSize: 16, fontWeight: '600' },
-  titleAchieved: { fontSize: 16, fontWeight: '600', color: '#1a7f37' },
-  subtitle: { fontSize: 14, color: '#555' },
-  signpost: { fontSize: 13, color: '#777', fontStyle: 'italic', marginTop: 4 },
+  rowAchieved: { backgroundColor: color.damsonSoft, borderBottomColor: color.paper },
+  title: { fontFamily: font.medium, fontSize: type.body, color: color.ink },
+  titleAchieved: { fontFamily: font.bold, fontSize: type.body, color: color.damson },
+  subtitle: { fontFamily: font.body, fontSize: type.label, color: color.inkMuted },
+  ageAchieved: { fontFamily: font.medium, fontSize: type.label, color: color.damson },
+  signpost: {
+    fontFamily: font.serifItalic,
+    fontSize: type.label,
+    color: color.inkMuted,
+    marginTop: space.xs,
+    lineHeight: 21,
+  },
 });

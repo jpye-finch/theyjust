@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { AuthForm } from '@/features/auth/AuthForm';
 import { supabase } from '@/lib/supabase';
+import { color, font, space, type } from '@/theme/tokens';
 
 export default function SignIn() {
   const [error, setError] = useState<string | null>(null);
@@ -19,8 +20,10 @@ export default function SignIn() {
 
   return (
     <View style={styles.screen}>
-      <Text style={styles.title}>TheyJust</Text>
-      <Text style={styles.subtitle}>Every first, remembered.</Text>
+      <View style={styles.brand}>
+        <Text style={styles.title}>TheyJust</Text>
+        <Text style={styles.subtitle}>Every first, remembered.</Text>
+      </View>
       <AuthForm submitLabel="Sign in" onSubmit={signIn} error={error} busy={busy} />
       <Link href="/(auth)/sign-up" style={styles.link}>
         New here? Create an account
@@ -30,8 +33,21 @@ export default function SignIn() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, justifyContent: 'center', padding: 24, gap: 12 },
-  title: { fontSize: 34, fontWeight: '800', textAlign: 'center' },
-  subtitle: { fontSize: 16, textAlign: 'center', color: '#666', marginBottom: 24 },
-  link: { textAlign: 'center', marginTop: 16, color: '#1a1a2e' },
+  screen: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: space.xl,
+    gap: space.xl,
+    backgroundColor: color.paper,
+  },
+  brand: { alignItems: 'center', gap: space.xs, marginBottom: space.sm },
+  title: { fontFamily: font.displayBold, fontSize: 40, color: color.ink, letterSpacing: -0.5 },
+  subtitle: { fontFamily: font.serifItalic, fontSize: type.title, color: color.damson },
+  link: {
+    fontFamily: font.medium,
+    fontSize: type.label,
+    textAlign: 'center',
+    marginTop: space.sm,
+    color: color.inkMuted,
+  },
 });

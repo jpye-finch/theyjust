@@ -1,9 +1,12 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Button, FlatList, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, View } from 'react-native';
+import { PrimaryButton } from '@/components/PrimaryButton';
+import { TextButton } from '@/components/TextButton';
 import { childAge, formatChildAge } from '@/features/children/age';
 import { ChildForm } from '@/features/children/ChildForm';
 import { useChildren, useCreateChild, useUpdateChild } from '@/features/children/queries';
 import { supabase } from '@/lib/supabase';
+import { color, font, space, type } from '@/theme/tokens';
 
 // One source of truth for the footer form. Two independent booleans could both
 // be true (add + edit), stranding the user; a single mode makes every state
@@ -43,7 +46,7 @@ export default function FamilyScreen() {
   if (isPending) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator />
+        <ActivityIndicator color={color.damson} />
       </View>
     );
   }
@@ -54,6 +57,7 @@ export default function FamilyScreen() {
 
   return (
     <FlatList
+      style={styles.list}
       data={children}
       keyExtractor={(c) => c.id}
       ListHeaderComponent={
@@ -69,7 +73,7 @@ export default function FamilyScreen() {
               {formatChildAge(childAge(item.date_of_birth, item.due_date, new Date()))}
             </Text>
           </View>
-          <Button title="Edit" onPress={() => startEditing(item.id)} />
+          <TextButton label="Edit" onPress={() => startEditing(item.id)} />
         </View>
       )}
       ListFooterComponent={
@@ -94,7 +98,7 @@ export default function FamilyScreen() {
                   updateChild.mutate({ id: editing.id, input }, { onSuccess: closeForm })
                 }
               />
-              <Button title="Cancel" onPress={closeForm} />
+              <TextButton label="Cancel" onPress={closeForm} tone="muted" />
             </View>
           ) : showAdd ? (
             <View style={styles.form}>
@@ -105,13 +109,15 @@ export default function FamilyScreen() {
                 error={createChild.error?.message ?? null}
                 onSubmit={(input) => createChild.mutate(input, { onSuccess: closeForm })}
               />
-              {children.length > 0 ? <Button title="Cancel" onPress={closeForm} /> : null}
+              {children.length > 0 ? (
+                <TextButton label="Cancel" onPress={closeForm} tone="muted" />
+              ) : null}
             </View>
           ) : (
-            <Button title="Add another child" onPress={startAdding} />
+            <TextButton label="Add another child" onPress={startAdding} />
           )}
           <View style={styles.signOut}>
-            <Button title="Sign out" onPress={confirmSignOut} />
+            <TextButton label="Sign out" onPress={confirmSignOut} tone="muted" />
           </View>
         </View>
       }
@@ -120,22 +126,31 @@ export default function FamilyScreen() {
 }
 
 const styles = StyleSheet.create({
-  loading: { flex: 1, justifyContent: 'center' },
-  heading: { fontSize: 24, fontWeight: '800', padding: 16 },
+  list: { backgroundColor: color.paper },
+  loading: { flex: 1, justifyContent: 'center', backgroundColor: color.paper },
+  heading: {
+    fontFamily: font.displayBold,
+    fontSize: type.hero,
+    color: color.ink,
+    letterSpacing: -0.5,
+    paddingHorizontal: space.lg,
+    paddingTop: space.xl,
+    paddingBottom: space.md,
+  },
   childRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#ddd',
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    borderBottomWidth: 1,
+    borderBottomColor: color.rule,
   },
-  childInfo: { gap: 2 },
-  childName: { fontSize: 17, fontWeight: '600' },
-  childAge: { fontSize: 14, color: '#555' },
-  footer: { padding: 16, gap: 16 },
-  form: { gap: 12 },
-  formTitle: { fontSize: 18, fontWeight: '700' },
-  signOut: { marginTop: 24 },
+  childInfo: { gap: space.xs },
+  childName: { fontFamily: font.display, fontSize: type.title, color: color.ink },
+  childAge: { fontFamily: font.body, fontSize: type.label, color: color.inkMuted },
+  footer: { padding: space.lg, gap: space.lg },
+  form: { gap: space.lg },
+  formTitle: { fontFamily: font.display, fontSize: type.title, color: color.ink },
+  signOut: { marginTop: space.xl, borderTopWidth: 1, borderTopColor: color.rule, paddingTop: space.lg },
 });

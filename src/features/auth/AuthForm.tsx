@@ -1,5 +1,8 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { Field } from '@/components/Field';
+import { PrimaryButton } from '@/components/PrimaryButton';
+import { color, font, space, type } from '@/theme/tokens';
 
 type Props = {
   submitLabel: string;
@@ -23,24 +26,23 @@ export function AuthForm({ submitLabel, onSubmit, error, busy }: Props) {
     onSubmit(trimmed, password);
   };
 
+  // Local validation is freshest — it must not be masked by a stale server error.
   const message = localError ?? error;
 
   return (
     <View style={styles.container}>
-      <TextInput
-        style={styles.input}
+      <Field
+        label="Email"
         placeholder="Email"
-        accessibilityLabel="Email"
         autoCapitalize="none"
         autoComplete="email"
         keyboardType="email-address"
         value={email}
         onChangeText={setEmail}
       />
-      <TextInput
-        style={styles.input}
+      <Field
+        label="Password"
         placeholder="Password"
-        accessibilityLabel="Password"
         secureTextEntry
         autoComplete="password"
         value={password}
@@ -51,28 +53,12 @@ export function AuthForm({ submitLabel, onSubmit, error, busy }: Props) {
           {message}
         </Text>
       ) : null}
-      <Pressable style={styles.button} onPress={handlePress} disabled={busy}>
-        <Text style={styles.buttonText}>{busy ? '…' : submitLabel}</Text>
-      </Pressable>
+      <PrimaryButton label={submitLabel} onPress={handlePress} busy={busy} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { gap: 12 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-  },
-  error: { color: '#b00020' },
-  button: {
-    backgroundColor: '#1a1a2e',
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-  },
-  buttonText: { color: 'white', fontSize: 16, fontWeight: '600' },
+  container: { gap: space.lg },
+  error: { fontFamily: font.medium, fontSize: type.label, color: color.damson },
 });

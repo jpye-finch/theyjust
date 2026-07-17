@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { AuthForm } from '@/features/auth/AuthForm';
 import { supabase } from '@/lib/supabase';
+import { color, font, space, type } from '@/theme/tokens';
 
 export default function SignUp() {
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +31,25 @@ export default function SignUp() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, justifyContent: 'center', padding: 24, gap: 12 },
-  title: { fontSize: 28, fontWeight: '800', textAlign: 'center', marginBottom: 24 },
-  link: { textAlign: 'center', marginTop: 16, color: '#1a1a2e' },
+  screen: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: space.xl,
+    gap: space.xl,
+    backgroundColor: color.paper,
+  },
+  title: {
+    fontFamily: font.display,
+    fontSize: type.hero,
+    color: color.ink,
+    textAlign: 'center',
+    marginBottom: space.sm,
+  },
+  link: {
+    fontFamily: font.medium,
+    fontSize: type.label,
+    textAlign: 'center',
+    marginTop: space.sm,
+    color: color.inkMuted,
+  },
 });

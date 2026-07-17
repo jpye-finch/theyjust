@@ -1,5 +1,8 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Switch, Text, View } from 'react-native';
+import { Field } from '@/components/Field';
+import { PrimaryButton } from '@/components/PrimaryButton';
+import { color, font, space, type } from '@/theme/tokens';
 import type { ChildInput } from './queries';
 
 type Props = {
@@ -53,30 +56,28 @@ export function ChildForm({ submitLabel, onSubmit, initial, error, busy }: Props
 
   return (
     <View style={styles.container}>
-      <TextInput
-        style={styles.input}
-        placeholder="Name"
-        accessibilityLabel="Name"
-        value={name}
-        onChangeText={setName}
-      />
-      <TextInput
-        style={styles.input}
+      <Field label="Name" placeholder="Name" value={name} onChangeText={setName} />
+      <Field
+        label="Date of birth"
         placeholder="Date of birth (YYYY-MM-DD)"
-        accessibilityLabel="Date of birth"
         autoCapitalize="none"
         value={dateOfBirth}
         onChangeText={setDateOfBirth}
       />
       <View style={styles.switchRow}>
         <Text style={styles.switchLabel}>Born before 37 weeks?</Text>
-        <Switch value={premature} onValueChange={setPremature} accessibilityLabel="Born before 37 weeks" />
+        <Switch
+          value={premature}
+          onValueChange={setPremature}
+          accessibilityLabel="Born before 37 weeks"
+          trackColor={{ true: color.damson, false: color.rule }}
+          thumbColor={color.paper}
+        />
       </View>
       {premature ? (
-        <TextInput
-          style={styles.input}
+        <Field
+          label="Due date"
           placeholder="Due date (YYYY-MM-DD)"
-          accessibilityLabel="Due date"
           autoCapitalize="none"
           value={dueDate}
           onChangeText={setDueDate}
@@ -87,30 +88,14 @@ export function ChildForm({ submitLabel, onSubmit, initial, error, busy }: Props
           {message}
         </Text>
       ) : null}
-      <Pressable style={styles.button} onPress={handlePress} disabled={busy}>
-        <Text style={styles.buttonText}>{busy ? '…' : submitLabel}</Text>
-      </Pressable>
+      <PrimaryButton label={submitLabel} onPress={handlePress} busy={busy} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { gap: 12 },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-  },
+  container: { gap: space.lg },
   switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  switchLabel: { fontSize: 16 },
-  error: { color: '#b00020' },
-  button: {
-    backgroundColor: '#1a1a2e',
-    borderRadius: 8,
-    padding: 14,
-    alignItems: 'center',
-  },
-  buttonText: { color: 'white', fontSize: 16, fontWeight: '600' },
+  switchLabel: { fontFamily: font.body, fontSize: type.body, color: color.ink },
+  error: { fontFamily: font.medium, fontSize: type.label, color: color.damson },
 });
