@@ -1422,7 +1422,10 @@ const styles = StyleSheet.create({
 
 - [ ] **Step 3: Verify**
 
+Expo Router's typed-routes file `.expo/types/router.d.ts` is a git-ignored, locally-generated artifact. This machine's copy is stale: it predates the `capture` and `moment/[id]` routes (added in Tasks 9-10), so it would make `tsc` wrongly reject `router.push('/capture')` and `` router.push(`/moment/${id}`) ``. CI never generates this file (the `Href` type falls back to a permissive string there), which is why string routes compile in CI. Delete the stale copy so local `tsc` matches CI — it regenerates on the next `expo start`, by which point every route exists:
+
 ```bash
+rm -f .expo/types/router.d.ts
 npx tsc --noEmit && npm test
 ```
 
@@ -1434,6 +1437,8 @@ Expected: tsc exit 0; full suite green (no new tests here; screens are verified 
 git add "src/app/(app)/_layout.tsx" "src/app/(app)/index.tsx"
 git commit -m "feat: Timeline home tab (first), quick-add, per-child feed"
 ```
+
+(`.expo/` is git-ignored, so the deleted typed-routes file never appears in `git status` — only the two `.tsx` files are staged.)
 
 ---
 
