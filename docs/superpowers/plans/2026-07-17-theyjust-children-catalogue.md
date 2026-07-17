@@ -120,7 +120,15 @@ export default function RootLayout() {
 }
 ```
 
-- [ ] **Step 5: Verify**
+- [ ] **Step 5: Guard Jest against stray tool worktrees, then verify**
+
+Background tooling occasionally parks git worktrees under `.claude/worktrees/`,
+which Jest's default scan would pick up (doubling suite counts). Add to the
+`jest` block in `package.json`:
+
+```json
+"testPathIgnorePatterns": ["/node_modules/", "/.claude/"]
+```
 
 ```bash
 npx tsc --noEmit && npm test
