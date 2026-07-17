@@ -29,4 +29,16 @@ describe('AuthForm', () => {
     await render(<AuthForm submitLabel="Sign in" onSubmit={jest.fn()} error="Invalid login credentials" />);
     expect(screen.getByText('Invalid login credentials')).toBeTruthy();
   });
+
+  it('does not submit while busy', async () => {
+    const onSubmit = jest.fn();
+    const user = userEvent.setup();
+    await render(<AuthForm submitLabel="Sign in" onSubmit={onSubmit} busy />);
+
+    await user.type(screen.getByPlaceholderText('Email'), 'jo@example.com');
+    await user.type(screen.getByPlaceholderText('Password'), 'hunter22');
+    await user.press(screen.getByText('…'));
+
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
 });

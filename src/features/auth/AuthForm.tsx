@@ -23,13 +23,14 @@ export function AuthForm({ submitLabel, onSubmit, error, busy }: Props) {
     onSubmit(trimmed, password);
   };
 
-  const message = error ?? localError;
+  const message = localError ?? error;
 
   return (
     <View style={styles.container}>
       <TextInput
         style={styles.input}
         placeholder="Email"
+        accessibilityLabel="Email"
         autoCapitalize="none"
         autoComplete="email"
         keyboardType="email-address"
@@ -39,12 +40,17 @@ export function AuthForm({ submitLabel, onSubmit, error, busy }: Props) {
       <TextInput
         style={styles.input}
         placeholder="Password"
+        accessibilityLabel="Password"
         secureTextEntry
         autoComplete="password"
         value={password}
         onChangeText={setPassword}
       />
-      {message ? <Text style={styles.error}>{message}</Text> : null}
+      {message ? (
+        <Text style={styles.error} role="alert" accessibilityLiveRegion="polite">
+          {message}
+        </Text>
+      ) : null}
       <Pressable style={styles.button} onPress={handlePress} disabled={busy}>
         <Text style={styles.buttonText}>{busy ? '…' : submitLabel}</Text>
       </Pressable>
