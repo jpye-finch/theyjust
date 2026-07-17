@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(4);
+select plan(6);
 
 select has_table('storage', 'objects', 'storage.objects exists');
 select has_function(
@@ -28,8 +28,14 @@ insert into storage.buckets (id, name, public) values ('moment-photos', 'moment-
 insert into storage.objects (bucket_id, name, owner)
   values ('moment-photos', '00000000-0000-0000-0000-0000000000d1/p1.jpg',
           '00000000-0000-0000-0000-0000000000a1');
+-- A malformed-path object (first segment is not a uuid): the policy must DENY
+-- it without erroring, so it can never break RLS for the whole bucket. Because
+-- the assertions below query storage.objects, an unguarded ::uuid cast would
+-- make them ERROR rather than return a count — this row is the guard.
+insert into storage.objects (bucket_id, name, owner)
+  values ('moment-photos', 'not-a-uuid/junk.jpg', '00000000-0000-0000-0000-0000000000a1');
 
--- As Bob (not in Alice's family): the object must be invisible.
+-- As Bob (not in Alice's family): neither object is visible.
 set local role authenticated;
 select set_config('request.jwt.claims',
   '{"sub": "00000000-0000-0000-0000-0000000000b1", "role": "authenticated"}', true);
@@ -38,13 +44,29 @@ select is(
   0::bigint,
   'Bob cannot see a photo object belonging to Alice''s moment');
 
--- As Alice: the object is visible.
+-- As Alice: exactly her one valid object (the malformed one is denied, not errored).
 select set_config('request.jwt.claims',
   '{"sub": "00000000-0000-0000-0000-0000000000a1", "role": "authenticated"}', true);
 select is(
   (select count(*) from storage.objects where bucket_id = 'moment-photos'),
   1::bigint,
-  'Alice can see her own moment''s photo object');
+  'Alice sees her valid object; the malformed-path object neither errors nor shows');
+
+-- Write gate: Alice may upload under her own moment; Bob may not.
+select lives_ok(
+  $$insert into storage.objects (bucket_id, name, owner)
+    values ('moment-photos', '00000000-0000-0000-0000-0000000000d1/p2.jpg',
+            '00000000-0000-0000-0000-0000000000a1')$$,
+  'Alice can upload under her own moment');
+
+select set_config('request.jwt.claims',
+  '{"sub": "00000000-0000-0000-0000-0000000000b1", "role": "authenticated"}', true);
+select throws_ok(
+  $$insert into storage.objects (bucket_id, name, owner)
+    values ('moment-photos', '00000000-0000-0000-0000-0000000000d1/evil.jpg',
+            '00000000-0000-0000-0000-0000000000b1')$$,
+  '42501', null,
+  'Bob cannot upload under Alice''s moment');
 
 select * from finish();
 rollback;
