@@ -777,6 +777,7 @@ describe('MomentCard', () => {
     expect(screen.getByText('2026-05-29 · 4 months, 2 weeks')).toBeTruthy();
     expect(screen.getByText('flipped right over')).toBeTruthy();
     expect(screen.getByText('Logged by you')).toBeTruthy();
+    expect(screen.queryByTestId('moment-photo')).toBeNull();
   });
 
   it('uses a custom title and credits a co-parent', async () => {
@@ -790,6 +791,20 @@ describe('MomentCard', () => {
     );
     expect(screen.getByText('First haircut')).toBeTruthy();
     expect(screen.getByText('Logged by a co-parent')).toBeTruthy();
+  });
+
+  it('renders the photo when a signed URL is provided', async () => {
+    await render(
+      <MomentCard
+        moment={base}
+        childDateOfBirth="2026-01-15"
+        loggedByYou
+        photoUrl="https://example.test/photo.jpg"
+      />,
+    );
+    expect(screen.getByTestId('moment-photo').props.source).toEqual({
+      uri: 'https://example.test/photo.jpg',
+    });
   });
 });
 ```
@@ -807,7 +822,7 @@ Expected: FAIL — `Cannot find module '../MomentCard'`.
 ```tsx
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { ageParts, formatAgeParts } from '../children/age';
-import { color, font, hairline, space, type } from '../../theme/tokens';
+import { color, font, hairline, space, type } from '@/theme/tokens';
 import type { Moment } from './momentQueries';
 import { momentTitle } from './momentText';
 
@@ -822,7 +837,17 @@ export function MomentCard({ moment, childDateOfBirth, loggedByYou, photoUrl }: 
   const ageText = formatAgeParts(ageParts(childDateOfBirth, moment.occurred_on));
   return (
     <View style={styles.card}>
-      {photoUrl ? <Image source={{ uri: photoUrl }} style={styles.photo} resizeMode="cover" /> : null}
+      {photoUrl ? (
+        // Title and note carry the moment as text, so the photo is decorative to a
+        // screen reader (avoids announcing the same moment twice).
+        <Image
+          testID="moment-photo"
+          accessible={false}
+          source={{ uri: photoUrl }}
+          style={styles.photo}
+          resizeMode="cover"
+        />
+      ) : null}
       <View style={styles.body}>
         <Text style={styles.title}>{momentTitle(moment)}</Text>
         <Text style={styles.meta}>{`${moment.occurred_on} · ${ageText}`}</Text>
@@ -967,9 +992,9 @@ Expected: FAIL — `Cannot find module '../CaptureForm'`.
 ```tsx
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Field } from '../../components/Field';
-import { PrimaryButton } from '../../components/PrimaryButton';
-import { color, font, radius, space, type } from '../../theme/tokens';
+import { Field } from '@/components/Field';
+import { PrimaryButton } from '@/components/PrimaryButton';
+import { color, font, radius, space, type } from '@/theme/tokens';
 
 export type CaptureSubmit = {
   customTitle: string | null;
@@ -1663,7 +1688,7 @@ A keepsake card rendered off-screen to an image and handed to the native share s
 ```tsx
 import { forwardRef } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
-import { color, font, space } from '../../theme/tokens';
+import { color, font, space } from '@/theme/tokens';
 
 type Props = {
   title: string;
