@@ -608,8 +608,9 @@ Create `src/features/milestones/__tests__/catalogue.test.ts`:
 ```ts
 import { CATALOGUE, CATEGORY_LABELS, MilestoneCategory } from '../catalogue';
 
-// Task 4 ships 4 exemplar entries; Task 5 raises this to the full 40.
-const EXPECTED_MILESTONE_COUNT = 4;
+// Task 4 ships 5 exemplar entries (one per category, two motor); Task 5
+// raises this to the full 40.
+const EXPECTED_MILESTONE_COUNT = 5;
 
 const ALLOWED_SOURCE_HOSTS = ['who.int', 'cdc.gov', 'nhs.uk'];
 
@@ -670,7 +671,7 @@ npm test -- catalogue
 
 Expected: FAIL — `Cannot find module '../catalogue'`.
 
-- [ ] **Step 3: Implement `src/features/milestones/catalogue.ts` with the schema and 4 exemplars**
+- [ ] **Step 3: Implement `src/features/milestones/catalogue.ts` with the schema and 5 exemplars** (one per category so the coverage test holds from birth; two motor)
 
 ```ts
 // The curated milestone catalogue (spec §5). App-bundled static data: it
@@ -731,6 +732,19 @@ export const CATALOGUE: CatalogueEntry[] = [
     ],
   },
   {
+    id: 'first_smile',
+    title: 'First smile',
+    celebration: 'They just smiled!',
+    category: 'social',
+    typicalStartMonths: 0,
+    typicalEndMonths: 3,
+    context: 'That first real, social smile is usually aimed at a familiar face.',
+    sources: [
+      'https://www.cdc.gov/act-early/milestones/milestones-2mo.html',
+      'https://www.nhs.uk/conditions/baby/babys-development/height-weight-and-reviews/baby-reviews/',
+    ],
+  },
+  {
     id: 'first_word',
     title: 'First word',
     celebration: 'They just said their first word!',
@@ -765,7 +779,7 @@ export const CATALOGUE: CatalogueEntry[] = [
 npm test -- catalogue && npm test -- rangePhrase
 ```
 
-Expected: catalogue validation green (4 entries); rangePhrase green now that the type import resolves.
+Expected: catalogue validation green (5 entries); rangePhrase green now that the type import resolves.
 
 - [ ] **Step 5: Commit**
 
@@ -780,17 +794,17 @@ git commit -m "feat: milestone catalogue schema, validation contract, exemplar e
 
 This task is research + data entry, machine-checked by Task 4's validation test. For EVERY entry: consult at least two of WHO (Motor Development Study / child growth standards), CDC "Learn the Signs. Act Early." milestone pages (2022 revision), and NHS (nhs.uk baby development / Start for Life) via WebSearch/WebFetch; set the range to the span the sources jointly support (round outward to whole months, never narrower than any single consulted source); record the two-plus URLs actually consulted in `sources`. Write celebration/context copy in the product voice: warm, no deadline language (the validation test rejects "behind|should have|by now|late|delayed").
 
-**The fixed list — exactly these 40 ids (4 exemplars from Task 4 + 36 new):**
+**The fixed list — exactly these 40 ids (5 exemplars from Task 4 + 35 new):**
 
 - **motor (13):** `rolled_over`✓, `sat_unsupported`, `crawled`, `pulled_to_stand`, `stood_unaided`, `first_steps`✓, `climbed_stairs`, `ran`, `kicked_ball`, `jumped`, `pincer_grip`, `stacked_blocks`, `scribbled`
-- **social (9):** `first_smile`, `laughed`, `played_peekaboo`, `stranger_awareness`, `waved_bye`, `pointed_to_show`, `pretend_play`, `parallel_play`, `took_turns`
+- **social (9):** `first_smile`✓, `laughed`, `played_peekaboo`, `stranger_awareness`, `waved_bye`, `pointed_to_show`, `pretend_play`, `parallel_play`, `took_turns`
 - **language (10):** `cooed`, `babbled`, `responded_to_name`, `first_word`✓, `understood_no`, `followed_instruction`, `two_word_phrase`, `named_body_part`, `fifty_words`, `said_own_name`
 - **feeding (8):** `first_finger_food`, `drank_open_cup`, `used_spoon`✓, `fed_self_meal`, `used_fork`, `took_off_clothes`, `washed_hands`, `brushed_teeth_helped`
 
 Special note: `crawled` — some children skip crawling entirely; the context sentence must say so.
 
 **Files:**
-- Modify: `src/features/milestones/catalogue.ts` (add 36 entries, keep category grouping order: motor, social, language, feeding)
+- Modify: `src/features/milestones/catalogue.ts` (add 35 entries, keep category grouping order: motor, social, language, feeding)
 - Modify: `src/features/milestones/__tests__/catalogue.test.ts` (one line: `EXPECTED_MILESTONE_COUNT = 4` → `40`)
 
 - [ ] **Step 1: Bump the count to 40**
@@ -807,9 +821,9 @@ const EXPECTED_MILESTONE_COUNT = 40;
 npm test -- catalogue
 ```
 
-Expected: FAIL — expected length 40, received 4.
+Expected: FAIL — expected length 40, received 5.
 
-- [ ] **Step 3: Research and add the 36 entries** following the exemplar format exactly (same field shapes, ≥2 sources each from the allowed hosts, ranges cross-checked as described above). Work category by category; keep the file ordered motor → social → language → feeding.
+- [ ] **Step 3: Research and add the 35 entries** following the exemplar format exactly (same field shapes, ≥2 sources each from the allowed hosts, ranges cross-checked as described above). Work category by category; keep the file ordered motor → social → language → feeding.
 
 - [ ] **Step 4: Run tests to verify they pass**
 
