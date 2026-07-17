@@ -1,12 +1,14 @@
 // Spec §5 safety rules, encoded once:
 //  - Achieved milestones are celebrated regardless of timing.
-//  - Ranges are always "typically emerges…" — never deadlines, never "behind".
+//  - Ranges are always "typically emerges…", never deadlines, never "behind".
 //  - A calm signpost appears only when the child's comparison age is more than
 //    SIGNPOST_GRACE_MONTHS past the outer bound. We are not a screening tool.
 import type { CatalogueEntry } from './catalogue';
 
+// Reads naturally in the US, UK, and Europe: "doctor" covers pediatrician /
+// GP / Kinderarzt, and "health visitor" names the UK's usual first port of call.
 export const SIGNPOST_TEXT =
-  'Every child is different — if you have questions, your health visitor or GP is the right person to ask.';
+  'Every child is different. If you have questions, your child’s doctor or health visitor is the right person to ask.';
 
 const SIGNPOST_GRACE_MONTHS = 2;
 

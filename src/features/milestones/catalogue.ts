@@ -7,11 +7,11 @@
 export type MilestoneCategory = 'motor' | 'social' | 'language' | 'feeding';
 
 export type CatalogueEntry = {
-  /** Stable snake_case id — stored in moments.milestone_id, never rename. */
+  /** Stable snake_case id, stored in moments.milestone_id, never rename. */
   id: string;
   title: string;
   /**
-   * Lowercase verb phrase completing "They just …" — composed by
+   * Lowercase verb phrase completing "They just …", composed by
    * celebrationText() on capture and by Plan 3's share card
    * ("They just took their first steps at 13 months").
    */
@@ -43,7 +43,7 @@ export function celebrationText(entry: Pick<CatalogueEntry, 'verbPhrase'>): stri
 }
 
 export const CATALOGUE: CatalogueEntry[] = [
-  // ——— Motor (13) ———
+  // Motor (13)
   {
     id: 'rolled_over',
     title: 'Rolled over',
@@ -51,7 +51,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     category: 'motor',
     typicalStartMonths: 3,
     typicalEndMonths: 7,
-    context: 'Rolling both ways takes practice — tummy time makes a big difference.',
+    context: 'Rolling both ways takes practice, and tummy time makes a big difference.',
     sources: [
       'https://www.nhsinform.scot/ready-steady-baby/early-parenthood/your-baby-s-development-from-2-to-12-months/',
       'https://www.cdc.gov/act-early/milestones/6-months.html',
@@ -79,7 +79,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     typicalStartMonths: 6,
     typicalEndMonths: 12,
     context:
-      'Plenty of babies skip crawling entirely — bottom-shuffling or rolling to get around is just as healthy.',
+      'Plenty of babies skip crawling entirely; bottom-shuffling or rolling to get around is just as healthy.',
     skippable: true,
     sources: [
       'https://cdn.who.int/media/docs/default-source/child-growth/child-growth-standards/indicators/motor-development-milestones/who-motor-development-study-windows-of-achievement-for-six-gross-motor-development-milestones.pdf',
@@ -94,7 +94,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     typicalStartMonths: 5,
     typicalEndMonths: 12,
     context:
-      'Furniture makes a wonderful gym — pulling up is a near-universal step, even for babies who never crawl.',
+      'Furniture makes a wonderful gym: pulling up is a near-universal step, even for babies who never crawl.',
     sources: [
       'https://cdn.who.int/media/docs/default-source/child-growth/child-growth-standards/indicators/motor-development-milestones/who-motor-development-study-windows-of-achievement-for-six-gross-motor-development-milestones.pdf',
       'https://www.cdc.gov/act-early/milestones/1-year.html',
@@ -108,7 +108,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     typicalStartMonths: 8,
     typicalEndMonths: 18,
     context:
-      'The first solo stand is often just a wobbly second or two — that fleeting balance is the whole milestone.',
+      'The first solo stand is often just a wobbly second or two; that fleeting balance is the whole milestone.',
     sources: [
       'https://cdn.who.int/media/docs/default-source/child-growth/child-growth-standards/indicators/motor-development-milestones/mm_percentiles_table.pdf?sfvrsn=81f3b60b_5',
       'https://www.buckshealthcare.nhs.uk/cyp/wp-content/uploads/sites/6/2021/08/Development-guide-from-birth-to-18-months.pdf',
@@ -122,7 +122,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     typicalStartMonths: 9,
     typicalEndMonths: 18,
     context:
-      'Walking has one of the widest healthy windows of any milestone — bottom-shufflers especially like to take their time, and that is a perfectly normal path.',
+      'Walking has one of the widest healthy windows of any milestone, and bottom-shufflers especially like to take their time, and that is a perfectly normal path.',
     sources: [
       'https://cdn.who.int/media/docs/default-source/child-growth/child-growth-standards/indicators/motor-development-milestones/mm_percentiles_table.pdf?sfvrsn=81f3b60b_5',
       'https://www.cdc.gov/act-early/milestones-in-action/18-months.html',
@@ -137,7 +137,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     typicalStartMonths: 18,
     typicalEndMonths: 24,
     context:
-      'Walking up stairs starts with a steadying hand or the rail — every supervised trip builds strength and coordination.',
+      'Walking up stairs starts with a steadying hand or the rail, and every supervised trip builds strength and coordination.',
     sources: [
       'https://www.cdc.gov/act-early/milestones-in-action/2-years.html',
       'https://www.buckshealthcare.nhs.uk/cyp/pifs/development-guide-from-18-months-to-3-years/',
@@ -150,7 +150,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     category: 'motor',
     typicalStartMonths: 18,
     typicalEndMonths: 24,
-    context: 'First runs are wonderfully wobbly — running grows straight out of confident walking.',
+    context: 'First runs are wonderfully wobbly; running grows straight out of confident walking.',
     sources: [
       'https://www.cdc.gov/act-early/milestones-in-action/2-years.html',
       'https://www.buckshealthcare.nhs.uk/cyp/pifs/development-guide-from-18-months-to-3-years/',
@@ -164,7 +164,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     typicalStartMonths: 20,
     typicalEndMonths: 36,
     context:
-      'Early kicks often look like walking straight into the ball — that little bump is exactly how kicking starts.',
+      'Early kicks often look like walking straight into the ball; that little bump is exactly how kicking starts.',
     sources: [
       'https://www.cdc.gov/act-early/milestones/2-years.html',
       'https://cambspborochildrenshealth.nhs.uk/child-development-and-growing-up/milestones/2-years/',
@@ -207,7 +207,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     category: 'motor',
     typicalStartMonths: 12,
     typicalEndMonths: 20,
-    context: 'Two cups, two boxes, two anything — any small tower counts as stacking.',
+    context: 'Two cups, two boxes, two anything: any small tower counts as stacking.',
     sources: [
       'https://www.cdc.gov/act-early/milestones-in-action/15-months.html',
       'https://cambspborochildrenshealth.nhs.uk/child-development-and-growing-up/milestones/18-months/',
@@ -221,13 +221,13 @@ export const CATALOGUE: CatalogueEntry[] = [
     typicalStartMonths: 15,
     typicalEndMonths: 21,
     context:
-      'Scribbling arrives through pure exploration — no lessons needed, just something safe to make marks with.',
+      'Scribbling arrives through pure exploration, with no lessons needed, just something safe to make marks with.',
     sources: [
       'https://www.cdc.gov/act-early/milestones-in-action/18-months.html',
       'https://cambspborochildrenshealth.nhs.uk/child-development-and-growing-up/milestones/18-months/',
     ],
   },
-  // ——— Social (9) ———
+  // Social (9)
   {
     id: 'first_smile',
     title: 'First smile',
@@ -236,7 +236,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     typicalStartMonths: 1,
     typicalEndMonths: 2,
     context:
-      'The true social smile usually appears around six weeks, aimed at a familiar face — those earlier sleepy newborn smiles were just the rehearsal.',
+      'The true social smile usually appears around six weeks, aimed at a familiar face; those earlier sleepy newborn smiles were just the rehearsal.',
     sources: [
       'https://www.cdc.gov/act-early/milestones/2-months.html',
       'https://www.healthiertogether.nhs.uk/child-under-5-years/emotions-behaviour-play',
@@ -263,7 +263,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     typicalStartMonths: 6,
     typicalEndMonths: 9,
     context:
-      'Peekaboo is secretly a lesson that people still exist when you cannot see them — and it is brilliant fun.',
+      'Peekaboo is secretly a lesson that people still exist when you cannot see them, and it is brilliant fun.',
     sources: [
       'https://www.cdc.gov/act-early/milestones/9-months.html',
       'https://www.nhs.uk/baby/babys-development/play-and-learning/help-your-baby-learn-to-talk/',
@@ -277,7 +277,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     typicalStartMonths: 6,
     typicalEndMonths: 12,
     context:
-      'Wariness of new faces is common right up to age three — and it is usually a sign of just how strongly they have bonded with you.',
+      'Wariness of new faces is common right up to age three, and it is usually a sign of just how strongly they have bonded with you.',
     skippable: true,
     sources: [
       'https://www.cdc.gov/act-early/milestones/9-months.html',
@@ -291,7 +291,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     category: 'social',
     typicalStartMonths: 6,
     typicalEndMonths: 12,
-    context: 'A wave is really a first word in gesture form — a whole goodbye in one little hand.',
+    context: 'A wave is really a first word in gesture form, a whole goodbye in one little hand.',
     sources: [
       'https://www.cdc.gov/act-early/milestones/1-year.html',
       'https://www.gosh.nhs.uk/conditions-and-treatments/procedures-and-treatments/speech-and-language-development-birth-12-months/',
@@ -305,7 +305,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     typicalStartMonths: 12,
     typicalEndMonths: 18,
     context:
-      'This point means "look at that!" — sharing excitement, not asking for things, is what makes it special.',
+      'This point means "look at that!": sharing excitement, not asking for things, is what makes it special.',
     sources: [
       'https://www.cdc.gov/act-early/milestones/18-months.html',
       'https://www.nhsinform.scot/ready-steady-baby/early-parenthood/your-baby-s-development-from-2-to-12-months/',
@@ -319,7 +319,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     typicalStartMonths: 18,
     typicalEndMonths: 30,
     context:
-      'The first pretend games are wonderfully ordinary — sipping from an empty cup or chatting on a toy phone.',
+      'The first pretend games are wonderfully ordinary: sipping from an empty cup or chatting on a toy phone.',
     sources: [
       'https://www.healthiertogether.nhs.uk/child-under-5-years/emotions-behaviour-play',
       'https://www.cdc.gov/act-early/milestones/30-months.html',
@@ -333,7 +333,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     typicalStartMonths: 24,
     typicalEndMonths: 30,
     context:
-      'Playing next to other children rather than with them is a healthy stage all of its own — real teamwork comes after.',
+      'Playing next to other children rather than with them is a healthy stage all of its own; real teamwork comes after.',
     sources: [
       'https://www.cdc.gov/act-early/milestones/30-months.html',
       'https://www.buckshealthcare.nhs.uk/cyp/pifs/development-guide-from-18-months-to-3-years/',
@@ -347,13 +347,13 @@ export const CATALOGUE: CatalogueEntry[] = [
     typicalStartMonths: 36,
     typicalEndMonths: 60,
     context:
-      'Turn-taking is practised over years — a pause or a handed-over toy counts long before board-game manners appear.',
+      'Turn-taking is practised over years; a pause or a handed-over toy counts long before board-game manners appear.',
     sources: [
       'https://www.cdc.gov/act-early/milestones/5-years.html',
       'https://www.healthiertogether.nhs.uk/child-under-5-years/emotions-behaviour-play',
     ],
   },
-  // ——— Language (10) ———
+  // Language (10)
   {
     id: 'cooed',
     title: 'First coo',
@@ -362,7 +362,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     typicalStartMonths: 2,
     typicalEndMonths: 4,
     context:
-      'Those first ooh and aah sounds often surprise babies themselves — it is the very start of conversation.',
+      'Those first ooh and aah sounds often surprise babies themselves; it is the very start of conversation.',
     sources: [
       'https://www.cdc.gov/act-early/milestones/4-months.html',
       'https://www.justonenorfolk.nhs.uk/child-development-additional-needs/talk-and-play/communication-milestones/',
@@ -390,7 +390,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     typicalStartMonths: 4,
     typicalEndMonths: 12,
     context:
-      'It starts with simply knowing the sound of their name — reliably turning to it comes with practice.',
+      'It starts with simply knowing the sound of their name; reliably turning to it comes with practice.',
     sources: [
       'https://www.cdc.gov/act-early/milestones/9-months.html',
       'https://www.justonenorfolk.nhs.uk/child-development-additional-needs/talk-and-play/communication-milestones/',
@@ -403,7 +403,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     category: 'language',
     typicalStartMonths: 10,
     typicalEndMonths: 15,
-    context: 'First words often hide inside babble — "mama" and "dada" count.',
+    context: 'First words often hide inside babble, and "mama" and "dada" count.',
     sources: [
       'https://www.cdc.gov/act-early/milestones/1-year.html',
       'https://www.healthiertogether.nhs.uk/child-under-5-years/speech-and-language',
@@ -416,7 +416,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     category: 'language',
     typicalStartMonths: 9,
     typicalEndMonths: 12,
-    context: 'Understanding "no" looks like a brief pause or a glance — it is recognition, not obedience.',
+    context: 'Understanding "no" looks like a brief pause or a glance; it is recognition, not obedience.',
     sources: [
       'https://www.cdc.gov/act-early/milestones/1-year.html',
       'https://www.healthiertogether.nhs.uk/child-under-5-years/speech-and-language',
@@ -430,7 +430,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     typicalStartMonths: 15,
     typicalEndMonths: 18,
     context:
-      'Following words alone, with no pointing to help, is the real magic here — gestures carried the meaning first.',
+      'Following words alone, with no pointing to help, is the real magic here; gestures carried the meaning first.',
     sources: [
       'https://www.cdc.gov/act-early/milestones/18-months.html',
       'https://www.healthiertogether.nhs.uk/child-under-5-years/speech-and-language',
@@ -444,7 +444,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     typicalStartMonths: 18,
     typicalEndMonths: 24,
     context:
-      '"More milk" and "all gone" are proper sentences to a toddler — two words that carry a whole thought.',
+      '"More milk" and "all gone" are proper sentences to a toddler: two words that carry a whole thought.',
     sources: [
       'https://www.cdc.gov/act-early/milestones/2-years.html',
       'https://www.gosh.nhs.uk/conditions-and-treatments/procedures-and-treatments/speech-and-language-development-12-24-months/',
@@ -471,7 +471,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     typicalStartMonths: 24,
     typicalEndMonths: 36,
     context:
-      'Vocabularies grow at wildly different speeds — anywhere around two to three years is normal territory for this.',
+      'Vocabularies grow at wildly different speeds; anywhere around two to three years is normal territory for this.',
     sources: [
       'https://www.cdc.gov/act-early/milestones/30-months.html',
       'https://www.healthiertogether.nhs.uk/child-under-5-years/speech-and-language',
@@ -491,7 +491,7 @@ export const CATALOGUE: CatalogueEntry[] = [
       'https://www.healthiertogether.nhs.uk/child-under-5-years/speech-and-language',
     ],
   },
-  // ——— Feeding & Self-care (8) ———
+  // Feeding & Self-care (8)
   {
     id: 'first_finger_food',
     title: 'First finger food',
@@ -514,7 +514,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     typicalStartMonths: 6,
     typicalEndMonths: 18,
     context:
-      'Sips with a steadying hand come first, spills and all — open cups are kindest to growing teeth.',
+      'Sips with a steadying hand come first, spills and all; open cups are kindest to growing teeth.',
     sources: [
       'https://www.cdc.gov/act-early/milestones-in-action/1-year.html',
       'https://www.nhs.uk/best-start-in-life/baby/weaning/what-to-feed-your-baby/from-around-6-months/',
@@ -542,7 +542,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     typicalStartMonths: 18,
     typicalEndMonths: 36,
     context:
-      'Around two, most toddlers are keen to run the whole meal themselves — smaller portions of the family food are perfect.',
+      'Around two, most toddlers are keen to run the whole meal themselves, with smaller portions of the family food are perfect.',
     sources: [
       'https://www.cdc.gov/act-early/milestones-in-action/2-years.html',
       'https://www.justonenorfolk.nhs.uk/media/ghwj2qk2/using-a-spoon-information-sheet.pdf',
@@ -556,7 +556,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     typicalStartMonths: 24,
     typicalEndMonths: 36,
     context:
-      'First comes the stab — mastering knife and fork together is a much longer journey, and that is fine.',
+      'First comes the stab; mastering knife and fork together is a much longer journey, and that is fine.',
     sources: [
       'https://www.cdc.gov/act-early/milestones-in-action/3-years.html',
       'https://www.justonenorfolk.nhs.uk/media/mz1jao5l/using-a-fork-information-sheet.pdf',
@@ -570,7 +570,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     typicalStartMonths: 12,
     typicalEndMonths: 30,
     context:
-      'Socks and hats go first — undressing is the easy half, which is why it comes well before dressing.',
+      'Socks and hats go first; undressing is the easy half, which is why it comes well before dressing.',
     sources: [
       'https://www.cdc.gov/act-early/milestones-in-action/30-months.html',
       'https://www.nhsborders.scot.nhs.uk/media/1001733/Developing-Dressing-Skills-.pdf',
@@ -598,7 +598,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     typicalStartMonths: 36,
     typicalEndMonths: 72,
     context:
-      'From around three, children can take a turn with the brush themselves — most still need an adult finishing touch until around seven.',
+      'From around three, children can take a turn with the brush themselves, though most still need an adult finishing touch until around seven.',
     sources: [
       'https://www.nhs.uk/live-well/healthy-teeth-and-gums/taking-care-of-childrens-teeth/',
       'https://www.cdc.gov/oral-health/prevention/oral-health-tips-for-children.html',
