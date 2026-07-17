@@ -73,7 +73,7 @@ Create `supabase/tests/0004_storage.test.sql`:
 ```sql
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(4);
+select plan(6);
 
 select has_table('storage', 'objects', 'storage.objects exists');
 select has_function(
@@ -101,8 +101,14 @@ insert into storage.buckets (id, name, public) values ('moment-photos', 'moment-
 insert into storage.objects (bucket_id, name, owner)
   values ('moment-photos', '00000000-0000-0000-0000-0000000000d1/p1.jpg',
           '00000000-0000-0000-0000-0000000000a1');
+-- A malformed-path object (first segment is not a uuid): the policy must DENY
+-- it without erroring, so it can never break RLS for the whole bucket. Because
+-- the assertions below query storage.objects, an unguarded ::uuid cast would
+-- make them ERROR rather than return a count — this row is the guard.
+insert into storage.objects (bucket_id, name, owner)
+  values ('moment-photos', 'not-a-uuid/junk.jpg', '00000000-0000-0000-0000-0000000000a1');
 
--- As Bob (not in Alice's family): the object must be invisible.
+-- As Bob (not in Alice's family): neither object is visible.
 set local role authenticated;
 select set_config('request.jwt.claims',
   '{"sub": "00000000-0000-0000-0000-0000000000b1", "role": "authenticated"}', true);
@@ -111,13 +117,29 @@ select is(
   0::bigint,
   'Bob cannot see a photo object belonging to Alice''s moment');
 
--- As Alice: the object is visible.
+-- As Alice: exactly her one valid object (the malformed one is denied, not errored).
 select set_config('request.jwt.claims',
   '{"sub": "00000000-0000-0000-0000-0000000000a1", "role": "authenticated"}', true);
 select is(
   (select count(*) from storage.objects where bucket_id = 'moment-photos'),
   1::bigint,
-  'Alice can see her own moment''s photo object');
+  'Alice sees her valid object; the malformed-path object neither errors nor shows');
+
+-- Write gate: Alice may upload under her own moment; Bob may not.
+select lives_ok(
+  $$insert into storage.objects (bucket_id, name, owner)
+    values ('moment-photos', '00000000-0000-0000-0000-0000000000d1/p2.jpg',
+            '00000000-0000-0000-0000-0000000000a1')$$,
+  'Alice can upload under her own moment');
+
+select set_config('request.jwt.claims',
+  '{"sub": "00000000-0000-0000-0000-0000000000b1", "role": "authenticated"}', true);
+select throws_ok(
+  $$insert into storage.objects (bucket_id, name, owner)
+    values ('moment-photos', '00000000-0000-0000-0000-0000000000d1/evil.jpg',
+            '00000000-0000-0000-0000-0000000000b1')$$,
+  '42501', null,
+  'Bob cannot upload under Alice''s moment');
 
 select * from finish();
 rollback;
@@ -142,27 +164,54 @@ insert into storage.buckets (id, name, public)
 values ('moment-photos', 'moment-photos', false)
 on conflict (id) do nothing;
 
--- The first path segment is the moment id: "{moment_id}/{filename}".
--- (storage.foldername(name))[1] is that segment.
+-- Safely pull the moment id out of an object path "{moment_id}/{filename}".
+-- Returns null (which can_access_moment treats as "deny") rather than raising
+-- when the first segment is missing or not a uuid — so one malformed object can
+-- never turn the whole bucket's RLS into a statement error for every user.
+create or replace function public.moment_photo_moment_id(object_name text)
+returns uuid
+language plpgsql
+immutable
+set search_path = ''
+as $$
+declare
+  seg text := (storage.foldername(object_name))[1];
+begin
+  return seg::uuid;
+exception
+  when invalid_text_representation then
+    return null;
+end;
+$$;
+
 create policy moment_photos_read on storage.objects
   for select to authenticated
   using (
     bucket_id = 'moment-photos'
-    and public.can_access_moment(((storage.foldername(name))[1])::uuid)
+    and public.can_access_moment(public.moment_photo_moment_id(name))
   );
 
 create policy moment_photos_write on storage.objects
   for insert to authenticated
   with check (
     bucket_id = 'moment-photos'
-    and public.can_access_moment(((storage.foldername(name))[1])::uuid)
+    and public.can_access_moment(public.moment_photo_moment_id(name))
+  );
+
+-- Update policy lets a legitimate upsert retry succeed (same predicate, fails
+-- closed for non-members) instead of a confusing 403 on re-upload.
+create policy moment_photos_update on storage.objects
+  for update to authenticated
+  using (
+    bucket_id = 'moment-photos'
+    and public.can_access_moment(public.moment_photo_moment_id(name))
   );
 
 create policy moment_photos_delete on storage.objects
   for delete to authenticated
   using (
     bucket_id = 'moment-photos'
-    and public.can_access_moment(((storage.foldername(name))[1])::uuid)
+    and public.can_access_moment(public.moment_photo_moment_id(name))
   );
 ```
 
@@ -172,7 +221,7 @@ create policy moment_photos_delete on storage.objects
 supabase db reset && supabase test db
 ```
 
-Expected: all pass — 4 files / 50 assertions total (46 + 4).
+Expected: all pass — 4 files / 52 assertions total (46 + 6).
 
 - [ ] **Step 6: Commit**
 
@@ -1725,7 +1774,7 @@ git commit -m "feat: share a rendered keepsake card via the native share sheet"
 npx tsc --noEmit && npm test && supabase db reset && supabase test db
 ```
 
-Expected: tsc exit 0; all Jest suites green; pgTAP 4 files / 50 assertions PASS.
+Expected: tsc exit 0; all Jest suites green; pgTAP 4 files / 52 assertions PASS.
 
 - [ ] **Step 2: Web export smoke check**
 
