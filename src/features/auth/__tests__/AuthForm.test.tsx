@@ -1,30 +1,32 @@
-import { render, fireEvent, screen } from '@testing-library/react-native';
+import { render, screen, userEvent } from '@testing-library/react-native';
 import { AuthForm } from '../AuthForm';
 
 describe('AuthForm', () => {
-  it('submits trimmed email and password', () => {
+  it('submits trimmed email and password', async () => {
     const onSubmit = jest.fn();
-    render(<AuthForm submitLabel="Sign in" onSubmit={onSubmit} />);
+    const user = userEvent.setup();
+    await render(<AuthForm submitLabel="Sign in" onSubmit={onSubmit} />);
 
-    fireEvent.changeText(screen.getByPlaceholderText('Email'), '  jo@example.com ');
-    fireEvent.changeText(screen.getByPlaceholderText('Password'), 'hunter22');
-    fireEvent.press(screen.getByText('Sign in'));
+    await user.type(screen.getByPlaceholderText('Email'), '  jo@example.com ');
+    await user.type(screen.getByPlaceholderText('Password'), 'hunter22');
+    await user.press(screen.getByText('Sign in'));
 
     expect(onSubmit).toHaveBeenCalledWith('jo@example.com', 'hunter22');
   });
 
-  it('blocks submit and shows a message when fields are empty', () => {
+  it('blocks submit and shows a message when fields are empty', async () => {
     const onSubmit = jest.fn();
-    render(<AuthForm submitLabel="Sign in" onSubmit={onSubmit} />);
+    const user = userEvent.setup();
+    await render(<AuthForm submitLabel="Sign in" onSubmit={onSubmit} />);
 
-    fireEvent.press(screen.getByText('Sign in'));
+    await user.press(screen.getByText('Sign in'));
 
     expect(onSubmit).not.toHaveBeenCalled();
     expect(screen.getByText('Enter your email and password')).toBeTruthy();
   });
 
-  it('shows the error passed in', () => {
-    render(<AuthForm submitLabel="Sign in" onSubmit={jest.fn()} error="Invalid login credentials" />);
+  it('shows the error passed in', async () => {
+    await render(<AuthForm submitLabel="Sign in" onSubmit={jest.fn()} error="Invalid login credentials" />);
     expect(screen.getByText('Invalid login credentials')).toBeTruthy();
   });
 });
