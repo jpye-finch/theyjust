@@ -75,4 +75,17 @@ describe('CaptureForm', () => {
     );
     expect(screen.getByText('2 photos added')).toBeTruthy();
   });
+
+  it('uses the singular label for a single photo', async () => {
+    await render(
+      <CaptureForm
+        presetTitle="They just smiled!"
+        defaultOccurredOn="2026-05-01"
+        photoCount={1}
+        onPickPhoto={jest.fn()}
+        onSubmit={jest.fn()}
+      />,
+    );
+    expect(screen.getByText('1 photo added')).toBeTruthy();
+  });
 });

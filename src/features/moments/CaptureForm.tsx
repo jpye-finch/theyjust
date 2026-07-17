@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Field } from '@/components/Field';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { color, font, radius, space, type } from '@/theme/tokens';
+import { isRealDate } from '../../lib/date';
 
 export type CaptureSubmit = {
   customTitle: string | null;
@@ -19,12 +20,6 @@ type Props = {
   busy?: boolean;
 };
 
-function isRealDate(iso: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false;
-  const d = new Date(`${iso}T00:00:00Z`);
-  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === iso;
-}
-
 export function CaptureForm({
   presetTitle,
   defaultOccurredOn,
@@ -33,6 +28,8 @@ export function CaptureForm({
   onSubmit,
   busy,
 }: Props) {
+  // defaultOccurredOn seeds state once; the capture screen mounts this form fresh
+  // per moment, so the prop stays stable for the component's lifetime.
   const [customTitle, setCustomTitle] = useState('');
   const [occurredOn, setOccurredOn] = useState(defaultOccurredOn);
   const [note, setNote] = useState('');

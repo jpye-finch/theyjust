@@ -4,6 +4,7 @@ import { Field } from '@/components/Field';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { color, font, space, type } from '@/theme/tokens';
 import type { ChildInput } from './queries';
+import { isRealDate } from '../../lib/date';
 
 type Props = {
   submitLabel: string;
@@ -13,12 +14,6 @@ type Props = {
   error?: string | null;
   busy?: boolean;
 };
-
-function isRealDate(iso: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false;
-  const d = new Date(`${iso}T00:00:00Z`);
-  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === iso;
-}
 
 export function ChildForm({ submitLabel, onSubmit, initial, error, busy }: Props) {
   const [name, setName] = useState(initial?.name ?? '');
