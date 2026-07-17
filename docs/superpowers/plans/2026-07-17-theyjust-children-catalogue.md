@@ -1790,7 +1790,11 @@ export default function FamilyScreen() {
           {editing ? (
             <View style={styles.form}>
               <Text style={styles.formTitle}>{`Edit ${editing.name}`}</Text>
+              {/* key forces a remount when the edit target changes — without it,
+                  switching from editing child A to child B keeps A's field state
+                  and Save would overwrite B with A's values. */}
               <ChildForm
+                key={editing.id}
                 submitLabel="Save"
                 busy={updateChild.isPending}
                 error={updateChild.error?.message ?? null}
