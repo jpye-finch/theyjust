@@ -52,15 +52,22 @@ Scale (≥1.25 steps): hero 34, display 26, title 20, body 16, label 15, caption
 - **MilestoneRow**: a table-of-contents row. Unachieved = Karla title (ink) +
   Karla range (inkMuted) over a hairline rule. Achieved = ink-stamped: damson
   title + age on a `damsonSoft` wash. Signpost = Fraunces italic aside.
+- **Section headers**: book-chapter headings in Fraunces italic, damson,
+  sentence case. Deliberately NOT tracked-uppercase kicker labels.
+- **Child switcher**: a hairline-underline selector (the selected name carries a
+  2px damson underline), echoing the Field focus motif. Not pill chips.
 - **Tab bar**: paper, hairline top, damson active / inkMuted inactive, Feather
-  line glyphs (award, users), Karla labels.
+  line glyphs (book-open, users — no trophy/award: this product never gamifies),
+  Karla labels.
 
 ## Layout
 
 List-led, rule-divided pages like a book's index. Hairline rules, generous
 margins, no boxes around everything. Hierarchy comes from the type scale, not
 containers. Cards are avoided. Spacing scale: 4 / 8 / 12 / 16 / 24 / 32. Radius:
-6 (sm) / 10 (md) / 999 (pill, chips only). Primary actions sit in thumb reach.
+6 (sm) / 10 (md) only — no pills (the anti-reference's 999px pill is escaped
+entirely; selection is shown by underline, not a rounded chip). Primary actions
+sit in thumb reach.
 
 ## Motion
 

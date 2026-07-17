@@ -95,5 +95,5 @@ export function formatAgeParts(p: AgeParts): string {
 
 export function formatChildAge(a: ChildAge): string {
   const chron = formatAgeParts(a.chronological);
-  return a.corrected ? `${chron} — ${formatAgeParts(a.corrected)} corrected` : chron;
+  return a.corrected ? `${chron} (${formatAgeParts(a.corrected)} corrected)` : chron;
 }

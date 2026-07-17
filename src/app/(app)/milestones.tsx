@@ -56,9 +56,11 @@ export default function MilestonesScreen() {
                     accessibilityRole="button"
                     accessibilityState={{ selected: isSel }}
                     accessibilityLabel={`Show ${c.name}'s milestones`}
-                    style={[styles.chip, isSel && styles.chipSelected]}
+                    style={[styles.switchItem, isSel && styles.switchItemSelected]}
                   >
-                    <Text style={isSel ? styles.chipTextSelected : styles.chipText}>{c.name}</Text>
+                    <Text style={isSel ? styles.switchTextSelected : styles.switchText}>
+                      {c.name}
+                    </Text>
                   </Pressable>
                 );
               })}
@@ -110,24 +112,18 @@ const styles = StyleSheet.create({
   },
   emptyButton: { alignSelf: 'stretch', paddingHorizontal: space.xl },
   header: { paddingHorizontal: space.lg, paddingTop: space.xl, paddingBottom: space.md, gap: space.xs },
-  switcher: { flexDirection: 'row', gap: space.sm, marginBottom: space.sm, flexWrap: 'wrap' },
-  chip: {
-    borderWidth: 1,
-    borderColor: color.rule,
-    borderRadius: 999,
-    paddingVertical: space.sm,
-    paddingHorizontal: space.lg,
-  },
-  chipSelected: { backgroundColor: color.damson, borderColor: color.damson },
-  chipText: { fontFamily: font.medium, fontSize: type.label, color: color.inkMuted },
-  chipTextSelected: { fontFamily: font.medium, fontSize: type.label, color: color.onDamson },
+  // A hairline-underline selector (echoes the Field focus motif), not pill chips.
+  switcher: { flexDirection: 'row', gap: space.xl, marginBottom: space.md },
+  switchItem: { paddingBottom: space.xs, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  switchItemSelected: { borderBottomColor: color.damson },
+  switchText: { fontFamily: font.medium, fontSize: type.body, color: color.inkMuted },
+  switchTextSelected: { fontFamily: font.medium, fontSize: type.body, color: color.ink },
   childName: { fontFamily: font.displayBold, fontSize: type.hero, color: color.ink, letterSpacing: -0.5 },
   childAge: { fontFamily: font.body, fontSize: type.label, color: color.inkMuted },
+  // Book-chapter headings, not tracked-uppercase SaaS kickers.
   sectionHeader: {
-    fontFamily: font.bold,
-    fontSize: type.caption,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
+    fontFamily: font.serifItalic,
+    fontSize: type.title,
     color: color.damson,
     paddingHorizontal: space.lg,
     paddingTop: space.xl,

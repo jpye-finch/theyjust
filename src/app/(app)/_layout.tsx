@@ -24,7 +24,7 @@ export default function AppLayout() {
           name="milestones"
           options={{
             title: 'Milestones',
-            tabBarIcon: ({ color: c, size }) => <Feather name="award" size={size} color={c} />,
+            tabBarIcon: ({ color: c, size }) => <Feather name="book-open" size={size} color={c} />,
           }}
         />
         <Tabs.Screen

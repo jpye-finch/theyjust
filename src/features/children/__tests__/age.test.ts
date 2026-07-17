@@ -92,7 +92,7 @@ describe('formatChildAge', () => {
 
   it('shows both ages for premature children', () => {
     expect(formatChildAge(childAge('2026-01-01', '2026-03-01', '2026-07-01'))).toBe(
-      '6 months — 4 months corrected',
+      '6 months (4 months corrected)',
     );
   });
 });

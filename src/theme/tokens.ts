@@ -47,10 +47,11 @@ export const space = {
   xxl: 32,
 } as const;
 
+// No pill radius: the anti-reference's 999px pill is escaped entirely
+// (selection is shown by underline, not a rounded chip).
 export const radius = {
   sm: 6,
   md: 10,
-  pill: 999,
 } as const;
 
 export const hairline = { borderBottomWidth: 1, borderBottomColor: color.rule } as const;
