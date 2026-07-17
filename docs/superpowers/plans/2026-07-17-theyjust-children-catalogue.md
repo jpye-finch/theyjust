@@ -914,7 +914,7 @@ git commit -m "feat: full 40-milestone catalogue with WHO/CDC/NHS-sourced ranges
 Create `src/features/children/__tests__/queries.test.ts`:
 
 ```ts
-import { createChild, ensureFamilyId, fetchChildren } from '../queries';
+import { createChild, ensureFamilyId, fetchChildren, updateChild } from '../queries';
 import { supabase } from '../../../lib/supabase';
 
 jest.mock('../../../lib/supabase', () => ({
@@ -970,6 +970,30 @@ describe('createChild', () => {
     });
   });
 });
+
+describe('updateChild', () => {
+  it('updates the child by id with snake_case columns', async () => {
+    const single = jest.fn().mockResolvedValue({ data: { id: 'c1' }, error: null });
+    const eq = jest.fn().mockReturnValue({ select: () => ({ single }) });
+    const update = jest.fn().mockReturnValue({ eq });
+    mockedFrom.mockReturnValue({ update });
+
+    const child = await updateChild('c1', {
+      name: 'Aria',
+      dateOfBirth: '2026-01-01',
+      dueDate: '2026-03-01',
+    });
+
+    expect(child).toEqual({ id: 'c1' });
+    expect(mockedFrom).toHaveBeenCalledWith('children');
+    expect(update).toHaveBeenCalledWith({
+      name: 'Aria',
+      date_of_birth: '2026-01-01',
+      due_date: '2026-03-01',
+    });
+    expect(eq).toHaveBeenCalledWith('id', 'c1');
+  });
+});
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -1000,8 +1024,12 @@ export type ChildInput = {
   dueDate: string | null;
 };
 
-// create_family is idempotent (Plan 1): for an existing owner it returns the
-// owned family; for a brand-new user it creates one. Either way: one call.
+// create_family is idempotent (Plan 1): for any existing membership it returns
+// that family; for a brand-new user it creates one. Either way: one call.
+// The trap: an owner-only lookup would fork an invited co-parent (role
+// 'parent', Plan 4) into a phantom family instead of their inviter's — the RPC
+// returns the family of ANY existing membership, enforced at the DB level; see
+// migration 20260716000003 and its pgTAP case.
 export async function ensureFamilyId(): Promise<string> {
   const { data, error } = await supabase.rpc('create_family', { family_name: null });
   if (error) throw error;
