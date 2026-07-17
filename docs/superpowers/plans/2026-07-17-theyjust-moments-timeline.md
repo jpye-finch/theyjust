@@ -773,7 +773,8 @@ describe('MomentCard', () => {
       <MomentCard moment={base} childDateOfBirth="2026-01-15" loggedByYou photoUrl={null} />,
     );
     expect(screen.getByText('They just rolled over!')).toBeTruthy();
-    expect(screen.getByText('4 months, 2 weeks')).toBeTruthy();
+    // Date and age render as one meta line; getByText matches a Text's full content.
+    expect(screen.getByText('2026-05-29 · 4 months, 2 weeks')).toBeTruthy();
     expect(screen.getByText('flipped right over')).toBeTruthy();
     expect(screen.getByText('Logged by you')).toBeTruthy();
   });
