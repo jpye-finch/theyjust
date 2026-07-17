@@ -6,6 +6,13 @@ import { achievedAgeTexts, useMomentSummaries } from '@/features/milestones/achi
 import { CATALOGUE, CATEGORY_LABELS, MilestoneCategory } from '@/features/milestones/catalogue';
 import { MilestoneRow } from '@/features/milestones/MilestoneRow';
 
+// Grouping the static catalogue by category depends on nothing per-render, so
+// compute it once at import rather than on every render / chip tap.
+const SECTIONS = (Object.keys(CATEGORY_LABELS) as MilestoneCategory[]).map((category) => ({
+  title: CATEGORY_LABELS[category],
+  data: CATALOGUE.filter((e) => e.category === category),
+}));
+
 export default function MilestonesScreen() {
   const { children, selected, select, loading } = useSelectedChild();
   const { data: moments = [] } = useMomentSummaries(selected?.id ?? null);
@@ -28,14 +35,10 @@ export default function MilestonesScreen() {
 
   const age = childAge(selected.date_of_birth, selected.due_date, new Date());
   const achieved = achievedAgeTexts(moments, selected.date_of_birth);
-  const sections = (Object.keys(CATEGORY_LABELS) as MilestoneCategory[]).map((category) => ({
-    title: CATEGORY_LABELS[category],
-    data: CATALOGUE.filter((e) => e.category === category),
-  }));
 
   return (
     <SectionList
-      sections={sections}
+      sections={SECTIONS}
       keyExtractor={(e) => e.id}
       ListHeaderComponent={
         <View style={styles.header}>
@@ -45,6 +48,9 @@ export default function MilestonesScreen() {
                 <Pressable
                   key={c.id}
                   onPress={() => select(c.id)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: c.id === selected.id }}
+                  accessibilityLabel={`Show ${c.name}'s milestones`}
                   style={[styles.chip, c.id === selected.id && styles.chipSelected]}
                 >
                   <Text style={c.id === selected.id ? styles.chipTextSelected : styles.chipText}>
@@ -54,7 +60,9 @@ export default function MilestonesScreen() {
               ))}
             </View>
           ) : null}
-          <Text style={styles.childName}>{selected.name}</Text>
+          <Text style={styles.childName} accessibilityRole="header">
+            {selected.name}
+          </Text>
           <Text style={styles.childAge}>{formatChildAge(age)}</Text>
         </View>
       }
