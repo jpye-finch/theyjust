@@ -194,9 +194,10 @@ describe('ageParts', () => {
     expect(ageParts('2026-01-01', '2026-01-22')).toEqual({ months: 0, weeks: 3 });
   });
 
-  it('clamps month-end anchors (Jan 31 → Feb)', () => {
-    // Jan 31 → Feb 28 is 28 days: not yet a calendar month.
-    expect(ageParts('2026-01-31', '2026-02-28')).toEqual({ months: 0, weeks: 4 });
+  it('treats the clamped month-end as the monthly anniversary (Jan 31 → Feb 28)', () => {
+    // A baby born Jan 31 turns one month on Feb 28 — in a shorter month, the
+    // last day IS the anniversary (standard clamped-anniversary convention).
+    expect(ageParts('2026-01-31', '2026-02-28')).toEqual({ months: 1, weeks: 0 });
   });
 
   it('is zero on the day of birth', () => {
