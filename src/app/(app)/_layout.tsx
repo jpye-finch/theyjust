@@ -19,7 +19,13 @@ export default function AppLayout() {
           tabBarLabelStyle: { fontFamily: font.medium, fontSize: 12 },
         }}
       >
-        <Tabs.Screen name="index" options={{ href: null }} />
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'Timeline',
+            tabBarIcon: ({ color: c, size }) => <Feather name="clock" size={size} color={c} />,
+          }}
+        />
         <Tabs.Screen
           name="milestones"
           options={{
@@ -34,6 +40,8 @@ export default function AppLayout() {
             tabBarIcon: ({ color: c, size }) => <Feather name="users" size={size} color={c} />,
           }}
         />
+        <Tabs.Screen name="capture" options={{ href: null }} />
+        <Tabs.Screen name="moment/[id]" options={{ href: null }} />
       </Tabs>
     </SelectedChildProvider>
   );
