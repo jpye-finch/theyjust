@@ -1674,6 +1674,13 @@ import { achievedAgeTexts, useMomentSummaries } from '@/features/milestones/achi
 import { CATALOGUE, CATEGORY_LABELS, MilestoneCategory } from '@/features/milestones/catalogue';
 import { MilestoneRow } from '@/features/milestones/MilestoneRow';
 
+// Grouping the static catalogue by category depends on nothing per-render, so
+// compute it once at import rather than on every render / chip tap.
+const SECTIONS = (Object.keys(CATEGORY_LABELS) as MilestoneCategory[]).map((category) => ({
+  title: CATEGORY_LABELS[category],
+  data: CATALOGUE.filter((e) => e.category === category),
+}));
+
 export default function MilestonesScreen() {
   const { children, selected, select, loading } = useSelectedChild();
   const { data: moments = [] } = useMomentSummaries(selected?.id ?? null);
@@ -1696,14 +1703,10 @@ export default function MilestonesScreen() {
 
   const age = childAge(selected.date_of_birth, selected.due_date, new Date());
   const achieved = achievedAgeTexts(moments, selected.date_of_birth);
-  const sections = (Object.keys(CATEGORY_LABELS) as MilestoneCategory[]).map((category) => ({
-    title: CATEGORY_LABELS[category],
-    data: CATALOGUE.filter((e) => e.category === category),
-  }));
 
   return (
     <SectionList
-      sections={sections}
+      sections={SECTIONS}
       keyExtractor={(e) => e.id}
       ListHeaderComponent={
         <View style={styles.header}>
@@ -1713,6 +1716,9 @@ export default function MilestonesScreen() {
                 <Pressable
                   key={c.id}
                   onPress={() => select(c.id)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: c.id === selected.id }}
+                  accessibilityLabel={`Show ${c.name}'s milestones`}
                   style={[styles.chip, c.id === selected.id && styles.chipSelected]}
                 >
                   <Text style={c.id === selected.id ? styles.chipTextSelected : styles.chipText}>
@@ -1722,7 +1728,9 @@ export default function MilestonesScreen() {
               ))}
             </View>
           ) : null}
-          <Text style={styles.childName}>{selected.name}</Text>
+          <Text style={styles.childName} accessibilityRole="header">
+            {selected.name}
+          </Text>
           <Text style={styles.childAge}>{formatChildAge(age)}</Text>
         </View>
       }
@@ -1781,26 +1789,68 @@ const styles = StyleSheet.create({
 
 ```tsx
 import { useState } from 'react';
-import { Button, FlatList, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Button, FlatList, StyleSheet, Text, View } from 'react-native';
 import { childAge, formatChildAge } from '@/features/children/age';
 import { ChildForm } from '@/features/children/ChildForm';
 import { useChildren, useCreateChild, useUpdateChild } from '@/features/children/queries';
 import { supabase } from '@/lib/supabase';
 
+// One source of truth for the footer form. Two independent booleans could both
+// be true (add + edit), stranding the user; a single mode makes every state
+// reachable exactly one way.
+type FormMode = { type: 'idle' } | { type: 'adding' } | { type: 'editing'; id: string };
+
 export default function FamilyScreen() {
-  const { data: children = [] } = useChildren();
+  const { data: children = [], isPending } = useChildren();
   const createChild = useCreateChild();
   const updateChild = useUpdateChild();
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [adding, setAdding] = useState(false);
+  const [mode, setMode] = useState<FormMode>({ type: 'idle' });
 
-  const editing = children.find((c) => c.id === editingId) ?? null;
+  // Every transition clears stale mutation errors, so a failed save on one
+  // child never surfaces on another child's untouched form.
+  const startAdding = () => {
+    createChild.reset();
+    setMode({ type: 'adding' });
+  };
+  const startEditing = (id: string) => {
+    updateChild.reset();
+    setMode({ type: 'editing', id });
+  };
+  const closeForm = () => {
+    createChild.reset();
+    updateChild.reset();
+    setMode({ type: 'idle' });
+  };
+
+  const confirmSignOut = () =>
+    Alert.alert('Sign out?', 'You can sign back in any time.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Sign out', style: 'destructive', onPress: () => supabase.auth.signOut() },
+    ]);
+
+  // Gate on load so a returning parent never flashes the empty-family add form
+  // (and never loses typing when the real list arrives).
+  if (isPending) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
+  const editing = mode.type === 'editing' ? children.find((c) => c.id === mode.id) ?? null : null;
+  // A family with no children always shows the add form (and no cancel).
+  const showAdd = mode.type === 'adding' || children.length === 0;
 
   return (
     <FlatList
       data={children}
       keyExtractor={(c) => c.id}
-      ListHeaderComponent={<Text style={styles.heading}>Your family</Text>}
+      ListHeaderComponent={
+        <Text style={styles.heading} accessibilityRole="header">
+          Your family
+        </Text>
+      }
       renderItem={({ item }) => (
         <View style={styles.childRow}>
           <View style={styles.childInfo}>
@@ -1809,7 +1859,7 @@ export default function FamilyScreen() {
               {formatChildAge(childAge(item.date_of_birth, item.due_date, new Date()))}
             </Text>
           </View>
-          <Button title="Edit" onPress={() => setEditingId(item.id)} />
+          <Button title="Edit" onPress={() => startEditing(item.id)} />
         </View>
       )}
       ListFooterComponent={
@@ -1831,32 +1881,27 @@ export default function FamilyScreen() {
                   dueDate: editing.due_date,
                 }}
                 onSubmit={(input) =>
-                  updateChild.mutate(
-                    { id: editing.id, input },
-                    { onSuccess: () => setEditingId(null) },
-                  )
+                  updateChild.mutate({ id: editing.id, input }, { onSuccess: closeForm })
                 }
               />
-              <Button title="Cancel" onPress={() => setEditingId(null)} />
+              <Button title="Cancel" onPress={closeForm} />
             </View>
-          ) : adding || children.length === 0 ? (
+          ) : showAdd ? (
             <View style={styles.form}>
               <Text style={styles.formTitle}>Add a child</Text>
               <ChildForm
                 submitLabel="Add child"
                 busy={createChild.isPending}
                 error={createChild.error?.message ?? null}
-                onSubmit={(input) => createChild.mutate(input, { onSuccess: () => setAdding(false) })}
+                onSubmit={(input) => createChild.mutate(input, { onSuccess: closeForm })}
               />
-              {children.length > 0 ? (
-                <Button title="Cancel" onPress={() => setAdding(false)} />
-              ) : null}
+              {children.length > 0 ? <Button title="Cancel" onPress={closeForm} /> : null}
             </View>
           ) : (
-            <Button title="Add another child" onPress={() => setAdding(true)} />
+            <Button title="Add another child" onPress={startAdding} />
           )}
           <View style={styles.signOut}>
-            <Button title="Sign out" onPress={() => supabase.auth.signOut()} />
+            <Button title="Sign out" onPress={confirmSignOut} />
           </View>
         </View>
       }
@@ -1865,6 +1910,7 @@ export default function FamilyScreen() {
 }
 
 const styles = StyleSheet.create({
+  loading: { flex: 1, justifyContent: 'center' },
   heading: { fontSize: 24, fontWeight: '800', padding: 16 },
   childRow: {
     flexDirection: 'row',
@@ -1891,7 +1937,7 @@ const styles = StyleSheet.create({
 npx tsc --noEmit && npm test
 ```
 
-Expected: tsc exit 0; full suite green (7 pre-existing + all new = 41 tests across 9 suites).
+Expected: tsc exit 0; full suite green (10 suites / 102 tests — screens add no unit tests, they are verified at runtime in Task 10).
 
 - [ ] **Step 7: Commit**
 
