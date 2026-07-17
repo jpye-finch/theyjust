@@ -1,4 +1,4 @@
-import { CATALOGUE, CATEGORY_LABELS, MilestoneCategory } from '../catalogue';
+import { CATALOGUE, CATEGORY_LABELS, celebrationText, MilestoneCategory } from '../catalogue';
 
 // Task 4 ships 5 exemplar entries (one per category, two motor); Task 5
 // raises this to the full 40.
@@ -21,12 +21,17 @@ describe('milestone catalogue', () => {
 
   it.each(CATALOGUE.map((e) => [e.id, e] as const))('%s is fully specified', (_id, e) => {
     expect(e.title.trim().length).toBeGreaterThan(0);
-    expect(e.celebration.trim().length).toBeGreaterThan(0);
+    expect(e.verbPhrase.trim().length).toBeGreaterThan(0);
+    expect(e.verbPhrase).toMatch(/^[a-z]/); // composes after "They just …"
     expect(e.context.trim().length).toBeGreaterThan(0);
     expect(Object.keys(CATEGORY_LABELS)).toContain(e.category);
     expect(e.typicalStartMonths).toBeGreaterThanOrEqual(0);
     expect(e.typicalEndMonths).toBeGreaterThan(e.typicalStartMonths);
     expect(e.typicalEndMonths).toBeLessThanOrEqual(72);
+    for (const bound of [e.typicalStartMonths, e.typicalEndMonths]) {
+      // Past 24 months, rangeText phrases bounds in (half-)years.
+      if (bound >= 24) expect(bound % 6).toBe(0);
+    }
     expect(e.sources.length).toBeGreaterThanOrEqual(2);
     for (const s of e.sources) {
       const host = new URL(s).hostname;
@@ -38,9 +43,13 @@ describe('milestone catalogue', () => {
 
   it('never uses deadline or "behind" language in copy', () => {
     for (const e of CATALOGUE) {
-      const copy = `${e.celebration} ${e.context}`.toLowerCase();
+      const copy = `${e.verbPhrase} ${e.context}`.toLowerCase();
       expect(copy).not.toMatch(/behind|should have|by now|late|delayed/);
     }
+  });
+
+  it('composes celebration copy from the verb phrase', () => {
+    expect(celebrationText({ verbPhrase: 'rolled over' })).toBe('They just rolled over!');
   });
 
   it('covers every category', () => {

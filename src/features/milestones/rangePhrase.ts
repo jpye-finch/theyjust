@@ -15,17 +15,30 @@ export type MilestoneStatus =
   | { kind: 'range'; text: string }
   | { kind: 'range-with-signpost'; text: string; signpost: string };
 
+/** 24 → "2 years", 30 → "2½ years". Bounds ≥24 are validated to be ÷6. */
+function yearsText(months: number): string {
+  const whole = Math.floor(months / 12);
+  return months % 12 === 6 ? `${whole}½ years` : `${whole} years`;
+}
+
 export function rangeText(startMonths: number, endMonths: number): string {
   if (startMonths === 0) {
     return endMonths === 1
       ? 'Typically emerges in the first month'
       : `Typically emerges in the first ${endMonths} months`;
   }
-  return `Typically emerges between ${startMonths} and ${endMonths} months`;
+  if (endMonths < 24) {
+    return `Typically emerges between ${startMonths} and ${endMonths} months`;
+  }
+  if (startMonths >= 24) {
+    // "between 2½ and 4 years" — drop the unit from the first bound.
+    return `Typically emerges between ${yearsText(startMonths).replace(' years', '')} and ${yearsText(endMonths)}`;
+  }
+  return `Typically emerges between ${startMonths} months and ${yearsText(endMonths)}`;
 }
 
 export function milestoneStatus(
-  entry: Pick<CatalogueEntry, 'typicalStartMonths' | 'typicalEndMonths'>,
+  entry: Pick<CatalogueEntry, 'typicalStartMonths' | 'typicalEndMonths' | 'skippable'>,
   comparisonMonths: number,
   achievedAgeText: string | null,
 ): MilestoneStatus {
@@ -33,7 +46,9 @@ export function milestoneStatus(
     return { kind: 'achieved', ageText: achievedAgeText };
   }
   const text = rangeText(entry.typicalStartMonths, entry.typicalEndMonths);
-  if (comparisonMonths > entry.typicalEndMonths + SIGNPOST_GRACE_MONTHS) {
+  // Skippable milestones (many children healthily never do them) must never
+  // trigger the signpost — that would be exactly the false alarm we avoid.
+  if (!entry.skippable && comparisonMonths > entry.typicalEndMonths + SIGNPOST_GRACE_MONTHS) {
     return { kind: 'range-with-signpost', text, signpost: SIGNPOST_TEXT };
   }
   return { kind: 'range', text };

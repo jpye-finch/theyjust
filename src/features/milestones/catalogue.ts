@@ -10,13 +10,22 @@ export type CatalogueEntry = {
   /** Stable snake_case id — stored in moments.milestone_id, never rename. */
   id: string;
   title: string;
-  /** Celebratory phrasing used on capture and share cards: "They just …!" */
-  celebration: string;
+  /**
+   * Lowercase verb phrase completing "They just …" — composed by
+   * celebrationText() on capture and by Plan 3's share card
+   * ("They just took their first steps at 13 months").
+   */
+  verbPhrase: string;
   category: MilestoneCategory;
   typicalStartMonths: number;
   typicalEndMonths: number;
   /** One reassuring sentence of context. Never deadline language. */
   context: string;
+  /**
+   * True for milestones many children healthily skip entirely (e.g. crawling):
+   * suppresses the past-window signpost, which would otherwise false-alarm.
+   */
+  skippable?: boolean;
   /** ≥2 URLs, hosts limited to who.int / cdc.gov / nhs.uk. */
   sources: string[];
 };
@@ -28,11 +37,16 @@ export const CATEGORY_LABELS: Record<MilestoneCategory, string> = {
   feeding: 'Feeding & Self-care',
 };
 
+/** The canonical celebratory sentence: "They just rolled over!" */
+export function celebrationText(entry: Pick<CatalogueEntry, 'verbPhrase'>): string {
+  return `They just ${entry.verbPhrase}!`;
+}
+
 export const CATALOGUE: CatalogueEntry[] = [
   {
     id: 'rolled_over',
     title: 'Rolled over',
-    celebration: 'They just rolled over!',
+    verbPhrase: 'rolled over',
     category: 'motor',
     typicalStartMonths: 3,
     typicalEndMonths: 7,
@@ -45,7 +59,7 @@ export const CATALOGUE: CatalogueEntry[] = [
   {
     id: 'first_steps',
     title: 'First steps',
-    celebration: 'They just took their first steps!',
+    verbPhrase: 'took their first steps',
     category: 'motor',
     typicalStartMonths: 8,
     typicalEndMonths: 18,
@@ -58,7 +72,7 @@ export const CATALOGUE: CatalogueEntry[] = [
   {
     id: 'first_smile',
     title: 'First smile',
-    celebration: 'They just smiled!',
+    verbPhrase: 'smiled',
     category: 'social',
     typicalStartMonths: 0,
     typicalEndMonths: 3,
@@ -71,7 +85,7 @@ export const CATALOGUE: CatalogueEntry[] = [
   {
     id: 'first_word',
     title: 'First word',
-    celebration: 'They just said their first word!',
+    verbPhrase: 'said their first word',
     category: 'language',
     typicalStartMonths: 10,
     typicalEndMonths: 15,
@@ -84,7 +98,7 @@ export const CATALOGUE: CatalogueEntry[] = [
   {
     id: 'used_spoon',
     title: 'Used a spoon',
-    celebration: 'They just used a spoon!',
+    verbPhrase: 'used a spoon',
     category: 'feeding',
     typicalStartMonths: 12,
     typicalEndMonths: 20,

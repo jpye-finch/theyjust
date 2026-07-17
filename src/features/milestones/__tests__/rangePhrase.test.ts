@@ -3,7 +3,7 @@ import { milestoneStatus, rangeText, SIGNPOST_TEXT } from '../rangePhrase';
 const entry = {
   id: 'first_steps',
   title: 'First steps',
-  celebration: 'They just took their first steps!',
+  verbPhrase: 'took their first steps',
   category: 'motor' as const,
   typicalStartMonths: 8,
   typicalEndMonths: 18,
@@ -22,6 +22,12 @@ describe('rangeText', () => {
 
   it('uses singular month', () => {
     expect(rangeText(0, 1)).toBe('Typically emerges in the first month');
+  });
+
+  it('phrases toddler ranges in years, matching how ages display past 24 months', () => {
+    expect(rangeText(30, 48)).toBe('Typically emerges between 2½ and 4 years');
+    expect(rangeText(24, 36)).toBe('Typically emerges between 2 and 3 years');
+    expect(rangeText(18, 30)).toBe('Typically emerges between 18 months and 2½ years');
   });
 });
 
@@ -51,5 +57,9 @@ describe('milestoneStatus', () => {
       text: 'Typically emerges between 8 and 18 months',
       signpost: SIGNPOST_TEXT,
     });
+  });
+
+  it('never signposts commonly-skipped milestones', () => {
+    expect(milestoneStatus({ ...entry, skippable: true }, 25, null).kind).toBe('range');
   });
 });
