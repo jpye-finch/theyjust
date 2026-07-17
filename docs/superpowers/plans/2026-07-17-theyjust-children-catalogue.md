@@ -1168,6 +1168,11 @@ describe('ChildForm', () => {
     expect(screen.getByText('The due date should be after the date of birth')).toBeTruthy();
   });
 
+  it('shows a server error passed in', async () => {
+    await render(<ChildForm submitLabel="Add child" onSubmit={jest.fn()} error="Network request failed" />);
+    expect(screen.getByText('Network request failed')).toBeTruthy();
+  });
+
   it('prefills initial values for editing', async () => {
     await render(
       <ChildForm
@@ -1201,6 +1206,8 @@ type Props = {
   submitLabel: string;
   onSubmit: (input: ChildInput) => void;
   initial?: ChildInput;
+  /** Server-side failure (e.g. from useCreateChild().error) — AuthForm pattern. */
+  error?: string | null;
   busy?: boolean;
 };
 
@@ -1210,36 +1217,39 @@ function isRealDate(iso: string): boolean {
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === iso;
 }
 
-export function ChildForm({ submitLabel, onSubmit, initial, busy }: Props) {
+export function ChildForm({ submitLabel, onSubmit, initial, error, busy }: Props) {
   const [name, setName] = useState(initial?.name ?? '');
   const [dateOfBirth, setDateOfBirth] = useState(initial?.dateOfBirth ?? '');
   const [premature, setPremature] = useState(initial?.dueDate != null);
   const [dueDate, setDueDate] = useState(initial?.dueDate ?? '');
-  const [error, setError] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   const handlePress = () => {
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setError('Enter a name');
+      setLocalError('Enter a name');
       return;
     }
     if (!isRealDate(dateOfBirth)) {
-      setError('Enter the date of birth as YYYY-MM-DD');
+      setLocalError('Enter the date of birth as YYYY-MM-DD');
       return;
     }
     if (premature) {
       if (!isRealDate(dueDate)) {
-        setError('Enter the due date as YYYY-MM-DD');
+        setLocalError('Enter the due date as YYYY-MM-DD');
         return;
       }
       if (dueDate <= dateOfBirth) {
-        setError('The due date should be after the date of birth');
+        setLocalError('The due date should be after the date of birth');
         return;
       }
     }
-    setError(null);
+    setLocalError(null);
     onSubmit({ name: trimmedName, dateOfBirth, dueDate: premature ? dueDate : null });
   };
+
+  // Local validation is freshest — it must not be masked by a stale server error.
+  const message = localError ?? error;
 
   return (
     <View style={styles.container}>
@@ -1272,9 +1282,9 @@ export function ChildForm({ submitLabel, onSubmit, initial, busy }: Props) {
           onChangeText={setDueDate}
         />
       ) : null}
-      {error ? (
+      {message ? (
         <Text style={styles.error} role="alert" accessibilityLiveRegion="polite">
-          {error}
+          {message}
         </Text>
       ) : null}
       <Pressable style={styles.button} onPress={handlePress} disabled={busy}>
@@ -1312,7 +1322,7 @@ const styles = StyleSheet.create({
 npm test -- ChildForm
 ```
 
-Expected: 5 tests pass.
+Expected: 6 tests pass.
 
 - [ ] **Step 5: Commit**
 
@@ -1753,6 +1763,7 @@ export default function FamilyScreen() {
               <ChildForm
                 submitLabel="Save"
                 busy={updateChild.isPending}
+                error={updateChild.error?.message ?? null}
                 initial={{
                   name: editing.name,
                   dateOfBirth: editing.date_of_birth,
@@ -1773,6 +1784,7 @@ export default function FamilyScreen() {
               <ChildForm
                 submitLabel="Add child"
                 busy={createChild.isPending}
+                error={createChild.error?.message ?? null}
                 onSubmit={(input) => createChild.mutate(input, { onSuccess: () => setAdding(false) })}
               />
               {children.length > 0 ? (
