@@ -76,9 +76,8 @@ create extension if not exists pgtap with schema extensions;
 select plan(4);
 
 select has_table('storage', 'objects', 'storage.objects exists');
-select is(
-  (select public.can_access_moment is not null),
-  true,
+select has_function(
+  'public', 'can_access_moment', array['uuid'],
   'can_access_moment helper is present (from Plan 1)');
 
 -- Seed: two families, a child + moment in Alice's family, and a storage object
@@ -178,9 +177,12 @@ Expected: all pass — 4 files / 50 assertions total (46 + 4).
 - [ ] **Step 6: Commit**
 
 ```bash
-git add supabase/migrations/20260717000001_storage.sql supabase/tests/0004_storage.test.sql package.json package-lock.json
+git add supabase/migrations/20260717000001_storage.sql supabase/tests/0004_storage.test.sql package.json package-lock.json app.json
 git commit -m "feat: private moment-photos storage bucket with family-scoped RLS (pgTAP-tested)"
 ```
+
+(`app.json` is included because `expo install expo-sharing` auto-registers its
+config plugin there — a required native-build artifact of Step 1.)
 
 ---
 
