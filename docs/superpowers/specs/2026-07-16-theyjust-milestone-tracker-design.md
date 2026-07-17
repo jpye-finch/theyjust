@@ -181,6 +181,16 @@ account deletion.
 read-only sharing, push-notification nudges, memory-book PDF, payments/premium,
 widgets/Live Activities, web app.
 
+**Pre-launch checklist (accumulated during implementation, owned by Plan 4):**
+
+- Encrypt persisted session (AES key in expo-secure-store; see §6).
+- Production Supabase auth config: `enable_confirmations = true` (plus a
+  "check your email" pending state on sign-up — the current screen assumes
+  immediate session), real `site_url`/`additional_redirect_urls`, production
+  SMTP provider (local Inbucket does not exist in prod).
+- OAuth (Sign in with Apple/Google) needs `detectSessionInUrl: true` on web
+  and PKCE flow config in the app client.
+
 Schema/architecture was checked against each Phase 2 item: none is blocked (e.g.
 video = `media_type` column on photos table renamed to `moment_media`; percentiles =
 opt-in flag + aggregation job).
