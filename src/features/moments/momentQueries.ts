@@ -45,8 +45,10 @@ export async function fetchTimeline(childId: string): Promise<Moment[]> {
 }
 
 export async function createMoment(input: NewMoment): Promise<Moment> {
-  const { data: userData } = await supabase.auth.getUser();
-  const userId = userData.user?.id;
+  // getSession() reads the local session (no network hop); RLS still enforces
+  // logged_by = auth.uid() server-side, so a stale id would be rejected, not trusted.
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user.id;
   if (!userId) throw new Error('Not signed in');
   const { data, error } = await supabase
     .from('moments')
@@ -64,8 +66,10 @@ export async function createMoment(input: NewMoment): Promise<Moment> {
   return data as Moment;
 }
 
-// occurred_on + note are the only fields a moment edit touches; milestone_id,
-// child_id, and logged_by are locked at the grant layer (Plan 1).
+// occurred_on + note are the only fields this app-level edit sends. child_id,
+// id, created_at, and logged_by are locked out of Plan 1's column-scoped update
+// grant; milestone_id/custom_title are grantable there but intentionally
+// untouched here (MVP has no "recategorise this moment" flow).
 export async function updateMoment(id: string, edit: MomentEdit): Promise<Moment> {
   const { data, error } = await supabase
     .from('moments')

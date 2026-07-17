@@ -2,11 +2,11 @@ import { createMoment, deleteMoment, fetchTimeline, updateMoment } from '../mome
 import { supabase } from '../../../lib/supabase';
 
 jest.mock('../../../lib/supabase', () => ({
-  supabase: { from: jest.fn(), auth: { getUser: jest.fn() } },
+  supabase: { from: jest.fn(), auth: { getSession: jest.fn() } },
 }));
 
 const mockedFrom = supabase.from as jest.Mock;
-const mockedGetUser = supabase.auth.getUser as jest.Mock;
+const mockedGetSession = supabase.auth.getSession as jest.Mock;
 
 afterEach(() => jest.clearAllMocks());
 
@@ -27,7 +27,7 @@ describe('fetchTimeline', () => {
 
 describe('createMoment', () => {
   it('stamps logged_by from the signed-in user and inserts', async () => {
-    mockedGetUser.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null });
+    mockedGetSession.mockResolvedValue({ data: { session: { user: { id: 'user-1' } } }, error: null });
     const single = jest.fn().mockResolvedValue({ data: { id: 'm1' }, error: null });
     const insert = jest.fn().mockReturnValue({ select: () => ({ single }) });
     mockedFrom.mockReturnValue({ insert });
@@ -52,7 +52,7 @@ describe('createMoment', () => {
   });
 
   it('throws if there is no signed-in user', async () => {
-    mockedGetUser.mockResolvedValue({ data: { user: null }, error: null });
+    mockedGetSession.mockResolvedValue({ data: { session: null }, error: null });
     await expect(
       createMoment({ childId: 'c', milestoneId: 'x', customTitle: null, occurredOn: '2026-01-01', note: '' }),
     ).rejects.toThrow('Not signed in');
