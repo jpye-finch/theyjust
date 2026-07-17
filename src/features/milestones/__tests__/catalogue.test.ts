@@ -1,10 +1,9 @@
 import { CATALOGUE, CATEGORY_LABELS, celebrationText, MilestoneCategory } from '../catalogue';
 
-// Task 4 ships 5 exemplar entries (one per category, two motor); Task 5
-// raises this to the full 40.
-const EXPECTED_MILESTONE_COUNT = 5;
+// Task 5 raises this to the full 40-entry catalogue.
+const EXPECTED_MILESTONE_COUNT = 40;
 
-const ALLOWED_SOURCE_HOSTS = ['who.int', 'cdc.gov', 'nhs.uk'];
+const ALLOWED_SOURCE_HOSTS = ['who.int', 'cdc.gov', 'nhs.uk', 'nhsinform.scot'];
 
 describe('milestone catalogue', () => {
   it('has the expected number of entries', () => {
