@@ -471,7 +471,7 @@ import { milestoneStatus, rangeText, SIGNPOST_TEXT } from '../rangePhrase';
 const entry = {
   id: 'first_steps',
   title: 'First steps',
-  celebration: 'They just took their first steps!',
+  verbPhrase: 'took their first steps',
   category: 'motor' as const,
   typicalStartMonths: 8,
   typicalEndMonths: 18,
@@ -490,6 +490,12 @@ describe('rangeText', () => {
 
   it('uses singular month', () => {
     expect(rangeText(0, 1)).toBe('Typically emerges in the first month');
+  });
+
+  it('phrases toddler ranges in years, matching how ages display past 24 months', () => {
+    expect(rangeText(30, 48)).toBe('Typically emerges between 2½ and 4 years');
+    expect(rangeText(24, 36)).toBe('Typically emerges between 2 and 3 years');
+    expect(rangeText(18, 30)).toBe('Typically emerges between 18 months and 2½ years');
   });
 });
 
@@ -519,6 +525,10 @@ describe('milestoneStatus', () => {
       text: 'Typically emerges between 8 and 18 months',
       signpost: SIGNPOST_TEXT,
     });
+  });
+
+  it('never signposts commonly-skipped milestones', () => {
+    expect(milestoneStatus({ ...entry, skippable: true }, 25, null).kind).toBe('range');
   });
 });
 ```
@@ -551,17 +561,30 @@ export type MilestoneStatus =
   | { kind: 'range'; text: string }
   | { kind: 'range-with-signpost'; text: string; signpost: string };
 
+/** 24 → "2 years", 30 → "2½ years". Bounds ≥24 are validated to be ÷6. */
+function yearsText(months: number): string {
+  const whole = Math.floor(months / 12);
+  return months % 12 === 6 ? `${whole}½ years` : `${whole} years`;
+}
+
 export function rangeText(startMonths: number, endMonths: number): string {
   if (startMonths === 0) {
     return endMonths === 1
       ? 'Typically emerges in the first month'
       : `Typically emerges in the first ${endMonths} months`;
   }
-  return `Typically emerges between ${startMonths} and ${endMonths} months`;
+  if (endMonths < 24) {
+    return `Typically emerges between ${startMonths} and ${endMonths} months`;
+  }
+  if (startMonths >= 24) {
+    // "between 2½ and 4 years" — drop the unit from the first bound.
+    return `Typically emerges between ${yearsText(startMonths).replace(' years', '')} and ${yearsText(endMonths)}`;
+  }
+  return `Typically emerges between ${startMonths} months and ${yearsText(endMonths)}`;
 }
 
 export function milestoneStatus(
-  entry: Pick<CatalogueEntry, 'typicalStartMonths' | 'typicalEndMonths'>,
+  entry: Pick<CatalogueEntry, 'typicalStartMonths' | 'typicalEndMonths' | 'skippable'>,
   comparisonMonths: number,
   achievedAgeText: string | null,
 ): MilestoneStatus {
@@ -569,7 +592,9 @@ export function milestoneStatus(
     return { kind: 'achieved', ageText: achievedAgeText };
   }
   const text = rangeText(entry.typicalStartMonths, entry.typicalEndMonths);
-  if (comparisonMonths > entry.typicalEndMonths + SIGNPOST_GRACE_MONTHS) {
+  // Skippable milestones (many children healthily never do them) must never
+  // trigger the signpost — that would be exactly the false alarm we avoid.
+  if (!entry.skippable && comparisonMonths > entry.typicalEndMonths + SIGNPOST_GRACE_MONTHS) {
     return { kind: 'range-with-signpost', text, signpost: SIGNPOST_TEXT };
   }
   return { kind: 'range', text };
@@ -606,7 +631,7 @@ The validation test is the contract that keeps the content honest: every entry m
 Create `src/features/milestones/__tests__/catalogue.test.ts`:
 
 ```ts
-import { CATALOGUE, CATEGORY_LABELS, MilestoneCategory } from '../catalogue';
+import { CATALOGUE, CATEGORY_LABELS, celebrationText, MilestoneCategory } from '../catalogue';
 
 // Task 4 ships 5 exemplar entries (one per category, two motor); Task 5
 // raises this to the full 40.
@@ -629,12 +654,17 @@ describe('milestone catalogue', () => {
 
   it.each(CATALOGUE.map((e) => [e.id, e] as const))('%s is fully specified', (_id, e) => {
     expect(e.title.trim().length).toBeGreaterThan(0);
-    expect(e.celebration.trim().length).toBeGreaterThan(0);
+    expect(e.verbPhrase.trim().length).toBeGreaterThan(0);
+    expect(e.verbPhrase).toMatch(/^[a-z]/); // composes after "They just …"
     expect(e.context.trim().length).toBeGreaterThan(0);
     expect(Object.keys(CATEGORY_LABELS)).toContain(e.category);
     expect(e.typicalStartMonths).toBeGreaterThanOrEqual(0);
     expect(e.typicalEndMonths).toBeGreaterThan(e.typicalStartMonths);
     expect(e.typicalEndMonths).toBeLessThanOrEqual(72);
+    for (const bound of [e.typicalStartMonths, e.typicalEndMonths]) {
+      // Past 24 months, rangeText phrases bounds in (half-)years.
+      if (bound >= 24) expect(bound % 6).toBe(0);
+    }
     expect(e.sources.length).toBeGreaterThanOrEqual(2);
     for (const s of e.sources) {
       const host = new URL(s).hostname;
@@ -646,9 +676,13 @@ describe('milestone catalogue', () => {
 
   it('never uses deadline or "behind" language in copy', () => {
     for (const e of CATALOGUE) {
-      const copy = `${e.celebration} ${e.context}`.toLowerCase();
+      const copy = `${e.verbPhrase} ${e.context}`.toLowerCase();
       expect(copy).not.toMatch(/behind|should have|by now|late|delayed/);
     }
+  });
+
+  it('composes celebration copy from the verb phrase', () => {
+    expect(celebrationText({ verbPhrase: 'rolled over' })).toBe('They just rolled over!');
   });
 
   it('covers every category', () => {
@@ -686,13 +720,22 @@ export type CatalogueEntry = {
   /** Stable snake_case id — stored in moments.milestone_id, never rename. */
   id: string;
   title: string;
-  /** Celebratory phrasing used on capture and share cards: "They just …!" */
-  celebration: string;
+  /**
+   * Lowercase verb phrase completing "They just …" — composed by
+   * celebrationText() on capture and by Plan 3's share card
+   * ("They just took their first steps at 13 months").
+   */
+  verbPhrase: string;
   category: MilestoneCategory;
   typicalStartMonths: number;
   typicalEndMonths: number;
   /** One reassuring sentence of context. Never deadline language. */
   context: string;
+  /**
+   * True for milestones many children healthily skip entirely (e.g. crawling):
+   * suppresses the past-window signpost, which would otherwise false-alarm.
+   */
+  skippable?: boolean;
   /** ≥2 URLs, hosts limited to who.int / cdc.gov / nhs.uk. */
   sources: string[];
 };
@@ -704,11 +747,16 @@ export const CATEGORY_LABELS: Record<MilestoneCategory, string> = {
   feeding: 'Feeding & Self-care',
 };
 
+/** The canonical celebratory sentence: "They just rolled over!" */
+export function celebrationText(entry: Pick<CatalogueEntry, 'verbPhrase'>): string {
+  return `They just ${entry.verbPhrase}!`;
+}
+
 export const CATALOGUE: CatalogueEntry[] = [
   {
     id: 'rolled_over',
     title: 'Rolled over',
-    celebration: 'They just rolled over!',
+    verbPhrase: 'rolled over',
     category: 'motor',
     typicalStartMonths: 3,
     typicalEndMonths: 7,
@@ -721,7 +769,7 @@ export const CATALOGUE: CatalogueEntry[] = [
   {
     id: 'first_steps',
     title: 'First steps',
-    celebration: 'They just took their first steps!',
+    verbPhrase: 'took their first steps',
     category: 'motor',
     typicalStartMonths: 8,
     typicalEndMonths: 18,
@@ -734,7 +782,7 @@ export const CATALOGUE: CatalogueEntry[] = [
   {
     id: 'first_smile',
     title: 'First smile',
-    celebration: 'They just smiled!',
+    verbPhrase: 'smiled',
     category: 'social',
     typicalStartMonths: 0,
     typicalEndMonths: 3,
@@ -747,7 +795,7 @@ export const CATALOGUE: CatalogueEntry[] = [
   {
     id: 'first_word',
     title: 'First word',
-    celebration: 'They just said their first word!',
+    verbPhrase: 'said their first word',
     category: 'language',
     typicalStartMonths: 10,
     typicalEndMonths: 15,
@@ -760,7 +808,7 @@ export const CATALOGUE: CatalogueEntry[] = [
   {
     id: 'used_spoon',
     title: 'Used a spoon',
-    celebration: 'They just used a spoon!',
+    verbPhrase: 'used a spoon',
     category: 'feeding',
     typicalStartMonths: 12,
     typicalEndMonths: 20,
@@ -801,7 +849,19 @@ This task is research + data entry, machine-checked by Task 4's validation test.
 - **language (10):** `cooed`, `babbled`, `responded_to_name`, `first_word`✓, `understood_no`, `followed_instruction`, `two_word_phrase`, `named_body_part`, `fifty_words`, `said_own_name`
 - **feeding (8):** `first_finger_food`, `drank_open_cup`, `used_spoon`✓, `fed_self_meal`, `used_fork`, `took_off_clothes`, `washed_hands`, `brushed_teeth_helped`
 
-Special note: `crawled` — some children skip crawling entirely; the context sentence must say so.
+Additional authoring rules (from the Task 3/4 quality review):
+
+- **Re-verify the five exemplars' ranges too**, not just the 35 new entries. In
+  particular `first_smile`'s lower bound of 0 is suspect — the *social* smile is
+  conventionally reported from ~6 weeks; adjust to what the sources support.
+- **`skippable: true`** for any milestone the sources describe as commonly and
+  healthily skipped — `crawled` at minimum (its context sentence must also say
+  so). The signpost is suppressed for these.
+- **verbPhrase style:** lowercase verb phrase completing "They just …"; for
+  `first_*` milestones include "their first …" where it reads naturally
+  ("said their first word"), plain past tense otherwise ("smiled").
+- **Bounds ≥ 24 months must be divisible by 6** (the UI phrases them as whole
+  or half years — the validation test enforces this).
 
 **Files:**
 - Modify: `src/features/milestones/catalogue.ts` (add 35 entries, keep category grouping order: motor, social, language, feeding)
