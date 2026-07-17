@@ -637,7 +637,7 @@ import { CATALOGUE, CATEGORY_LABELS, celebrationText, MilestoneCategory } from '
 // raises this to the full 40.
 const EXPECTED_MILESTONE_COUNT = 5;
 
-const ALLOWED_SOURCE_HOSTS = ['who.int', 'cdc.gov', 'nhs.uk'];
+const ALLOWED_SOURCE_HOSTS = ['who.int', 'cdc.gov', 'nhs.uk', 'nhsinform.scot'];
 
 describe('milestone catalogue', () => {
   it('has the expected number of entries', () => {
@@ -736,7 +736,7 @@ export type CatalogueEntry = {
    * suppresses the past-window signpost, which would otherwise false-alarm.
    */
   skippable?: boolean;
-  /** ≥2 URLs, hosts limited to who.int / cdc.gov / nhs.uk. */
+  /** ≥2 URLs, hosts limited to who.int / cdc.gov / nhs.uk / nhsinform.scot. */
   sources: string[];
 };
 
@@ -840,7 +840,7 @@ git commit -m "feat: milestone catalogue schema, validation contract, exemplar e
 
 ### Task 5: Compile the full 40-entry catalogue (research task)
 
-This task is research + data entry, machine-checked by Task 4's validation test. For EVERY entry: consult at least two of WHO (Motor Development Study / child growth standards), CDC "Learn the Signs. Act Early." milestone pages (2022 revision), and NHS (nhs.uk baby development / Start for Life) via WebSearch/WebFetch; set the range to the span the sources jointly support (round outward to whole months, never narrower than any single consulted source); record the two-plus URLs actually consulted in `sources`. Write celebration/context copy in the product voice: warm, no deadline language (the validation test rejects "behind|should have|by now|late|delayed").
+This task is research + data entry, machine-checked by Task 4's validation test. For EVERY entry: consult at least two of WHO (Motor Development Study / child growth standards), CDC "Learn the Signs. Act Early." milestone pages (2022 revision), and NHS (nhs.uk baby development / Start for Life) via WebSearch/WebFetch; set the range to the span the sources jointly support (round outward to whole months, never narrower than any single consulted source); record the two-plus URLs actually consulted in `sources` (NHS inform Scotland, nhsinform.scot, counts as NHS — the national nhs.uk hub lacks per-milestone ages for several skills). Write celebration/context copy in the product voice: warm, no deadline language (the validation test rejects "behind|should have|by now|late|delayed").
 
 **The fixed list — exactly these 40 ids (5 exemplars from Task 4 + 35 new):**
 
