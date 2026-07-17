@@ -1,6 +1,6 @@
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { ageParts, formatAgeParts } from '../children/age';
-import { color, font, hairline, space, type } from '../../theme/tokens';
+import { color, font, hairline, space, type } from '@/theme/tokens';
 import type { Moment } from './momentQueries';
 import { momentTitle } from './momentText';
 
@@ -15,7 +15,17 @@ export function MomentCard({ moment, childDateOfBirth, loggedByYou, photoUrl }: 
   const ageText = formatAgeParts(ageParts(childDateOfBirth, moment.occurred_on));
   return (
     <View style={styles.card}>
-      {photoUrl ? <Image source={{ uri: photoUrl }} style={styles.photo} resizeMode="cover" /> : null}
+      {photoUrl ? (
+        // Title and note carry the moment as text, so the photo is decorative to a
+        // screen reader (avoids announcing the same moment twice).
+        <Image
+          testID="moment-photo"
+          accessible={false}
+          source={{ uri: photoUrl }}
+          style={styles.photo}
+          resizeMode="cover"
+        />
+      ) : null}
       <View style={styles.body}>
         <Text style={styles.title}>{momentTitle(moment)}</Text>
         <Text style={styles.meta}>{`${moment.occurred_on} · ${ageText}`}</Text>

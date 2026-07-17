@@ -23,6 +23,7 @@ describe('MomentCard', () => {
     expect(screen.getByText('2026-05-29 · 4 months, 2 weeks')).toBeTruthy();
     expect(screen.getByText('flipped right over')).toBeTruthy();
     expect(screen.getByText('Logged by you')).toBeTruthy();
+    expect(screen.queryByTestId('moment-photo')).toBeNull();
   });
 
   it('uses a custom title and credits a co-parent', async () => {
@@ -36,5 +37,19 @@ describe('MomentCard', () => {
     );
     expect(screen.getByText('First haircut')).toBeTruthy();
     expect(screen.getByText('Logged by a co-parent')).toBeTruthy();
+  });
+
+  it('renders the photo when a signed URL is provided', async () => {
+    await render(
+      <MomentCard
+        moment={base}
+        childDateOfBirth="2026-01-15"
+        loggedByYou
+        photoUrl="https://example.test/photo.jpg"
+      />,
+    );
+    expect(screen.getByTestId('moment-photo').props.source).toEqual({
+      uri: 'https://example.test/photo.jpg',
+    });
   });
 });
