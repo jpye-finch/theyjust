@@ -6,8 +6,8 @@ product
 
 ## Users
 
-Parents (UK-first) of children aged 0–5. They are tired, often holding a baby,
-using the app one-handed in stolen moments: a nursery at 6am, a GP waiting room,
+Parents across the US, UK, and Europe with children aged 0–5. They are tired, often holding a baby,
+using the app one-handed in stolen moments: a nursery at 6am, a waiting room,
 the sofa after bedtime. Two jobs: capture a first before the memory blurs
 ("They just rolled over!"), and get a calm answer to "is this normal?" without
 being ranked or alarmed. Co-parents share one family; grandparents arrive later.
@@ -30,7 +30,8 @@ Tender, unhurried, quietly joyful. The feel of a hand-written baby book, not a
 dashboard. Celebration is warm and personal, never loud, never gamified. The
 product's voice is already shipped and reviewed: verb phrases composed into
 "They just …!", ranges phrased as "typically emerges between…", a gentle
-signpost that names the health visitor or GP, UK register throughout. The visual
+signpost that points to the child's doctor. Warm plain English that reads
+naturally in the US, UK, and Europe — no market-specific jargon. The visual
 identity must feel like the same person wrote both.
 
 ## Anti-references
@@ -42,7 +43,9 @@ identity must feel like the same person wrote both.
 - Tracker density (Huckleberry, Baby Tracker): grids of stats, streaks, charts.
 - Pastel-nursery cliché: clouds, stars, mint-and-baby-blue, infantilised icons.
 - Anything that ranks, scores, percentiles, or implies a deadline.
-- US-clinical voice ("pediatrician") — the product says "health visitor or GP".
+- Market-locked clinical jargon in either direction ("pediatrician",
+  "health visitor" alone) — signposts say "your child's doctor or health
+  visitor", which reads everywhere.
 
 ## Design Principles
 
