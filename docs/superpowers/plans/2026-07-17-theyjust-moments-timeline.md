@@ -1994,7 +1994,7 @@ And render the off-screen card once (add just before the closing `</ScrollView>`
 
 ```tsx
       <View style={styles.offscreen} pointerEvents="none">
-        <ShareCard title={momentTitle(moment)} ageLine={`at ${ageText}`} photoUrl={photoUrl} />
+        <ShareCard ref={shareRef} title={momentTitle(moment)} ageLine={`at ${ageText}`} photoUrl={photoUrl} />
       </View>
 ```
 
@@ -2006,9 +2006,10 @@ Add the offscreen style:
 
 (The card reuses `momentTitle(moment)` and the existing `ageText` — no new momentText export.)
 
-- [ ] **Step 4: Verify**
+- [ ] **Step 4: Verify** (remove the git-ignored stale typed-routes file first — the whole project is typechecked, including the `/moment` and `/capture` pushes):
 
 ```bash
+rm -f .expo/types/router.d.ts
 npx tsc --noEmit && npm test
 ```
 
