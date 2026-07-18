@@ -1547,7 +1547,7 @@ The capture modal owns the picked-photo state, the create mutation, and (after t
 ```tsx
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TextButton } from '@/components/TextButton';
 import { useSelectedChild } from '@/features/children/selectedChild';
 import { CaptureForm, type CaptureSubmit } from '@/features/moments/CaptureForm';
@@ -1555,6 +1555,7 @@ import { CATALOGUE, celebrationText } from '@/features/milestones/catalogue';
 import { useCreateMoment, type Moment } from '@/features/moments/momentQueries';
 import { pickPhoto, resizePhoto, uploadMomentPhoto, type PickedPhoto } from '@/features/moments/photoUpload';
 import { todayIso } from '@/features/moments/today';
+import { notify } from '@/lib/dialog';
 import { color, font, space, type } from '@/theme/tokens';
 
 export default function CaptureScreen() {
@@ -1609,14 +1610,14 @@ export default function CaptureScreen() {
         note: value.note,
       });
     } catch (e) {
-      Alert.alert('Could not save', e instanceof Error ? e.message : 'Please try again.');
+      notify('Could not save', e instanceof Error ? e.message : 'Please try again.');
       return;
     }
     const uploads = await Promise.allSettled(
       photos.map((p, i) => uploadMomentPhoto(moment.id, `${moment.id}-${i}`, p, i)),
     );
     if (uploads.some((u) => u.status === 'rejected')) {
-      Alert.alert('Moment saved', "One or more photos didn't upload.");
+      notify('Moment saved', "One or more photos didn't upload.");
     }
     router.back();
   };
@@ -1804,7 +1805,7 @@ Full view of a moment: photo(s), title, date, age, note, who logged it. Edit the
 ```tsx
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Field } from '@/components/Field';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { TextButton } from '@/components/TextButton';
@@ -1819,6 +1820,7 @@ import {
 import { momentTitle } from '@/features/moments/momentText';
 import { signedPhotoUrl } from '@/features/moments/photoUpload';
 import { isRealDate } from '@/lib/date';
+import { confirmDestructive, notify } from '@/lib/dialog';
 import { color, font, radius, space, type } from '@/theme/tokens';
 
 export default function MomentDetailScreen() {
@@ -1865,19 +1867,13 @@ export default function MomentDetailScreen() {
   const ageText = formatAgeParts(ageParts(selected.date_of_birth, moment.occurred_on));
 
   const confirmDelete = () =>
-    Alert.alert('Delete this moment?', 'This cannot be undone.', [
-      { text: 'Keep it', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () =>
-          deleteMoment.mutate(moment.id, {
-            onSuccess: () => router.replace('/'),
-            onError: (e) =>
-              Alert.alert('Could not delete', e instanceof Error ? e.message : 'Please try again.'),
-          }),
-      },
-    ]);
+    confirmDestructive('Delete this moment?', 'This cannot be undone.', 'Delete', () =>
+      deleteMoment.mutate(moment.id, {
+        onSuccess: () => router.replace('/'),
+        onError: (e) =>
+          notify('Could not delete', e instanceof Error ? e.message : 'Please try again.'),
+      }),
+    );
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -1902,7 +1898,7 @@ export default function MomentDetailScreen() {
               {
                 onSuccess: () => setEditing(false),
                 onError: (e) =>
-                  Alert.alert('Could not save', e instanceof Error ? e.message : 'Please try again.'),
+                  notify('Could not save', e instanceof Error ? e.message : 'Please try again.'),
               },
             )
           }
@@ -2153,6 +2149,70 @@ Two bugs found and their disposition:
 - **FIXED in this task — capture form state went stale across captures.** `capture` is a tab-hidden screen (`href: null`), so React Navigation keeps it mounted after the first visit and `CaptureForm`'s `note`/`customTitle`/`occurredOn` (and picked photos) lingered into the next capture (cross-platform, not web-only). Fixed by re-seeding on focus: `useFocusEffect` bumps a `key` on `CaptureForm` and clears `photos` (Task 9 block updated; verified in-browser that a typed-then-cancelled note no longer persists into the next open).
 - **DEFERRED to Plan 4 pre-launch — `Alert.alert` is a no-op on react-native-web.** The delete confirm and the create/edit/delete/partial-photo error alerts show nothing on web (they work fully on native). This is app-wide platform parity (all `Alert` usage across Plans 1-3), best solved once with a cross-platform confirm/toast primitive; it belongs to the pre-launch hardening checklist, not this task.
 - **Photo upload** was exercised as far as the web file-input allows; expo-image-picker's web picker did not accept a synthesised file, and `expo-file-system` has its own web constraints. The photo pipeline is covered by `photoPath`/`RESIZE` unit tests and 52 storage pgTAP assertions (read/write/update/delete + cross-family deny), and `uploadMomentPhoto` is verified against the native path; full photo round-trip is a device-runtime check.
+
+---
+
+### Task 12b: Cross-platform dialogs (pulled forward from Plan 4)
+
+The deferred `Alert.alert`-on-web gap bit immediately in real use: a save failed while local Supabase was down and the app showed the user **nothing** (the `'Could not save'` handler fired into a no-op), so the only evidence was a `Failed to fetch` in the console. Losing a captured moment silently is a bad enough failure to fix now rather than at pre-launch. `Delete moment` was likewise unreachable on web, since its confirm never appeared.
+
+**Files:**
+- Create: `src/lib/dialog.ts`
+- Modify: `src/app/(app)/capture.tsx` (2 alerts → `notify`)
+- Modify: `src/app/(app)/moment/[id].tsx` (2 alerts → `notify`, the delete confirm → `confirmDestructive`)
+
+- [ ] **Step 1: Create `src/lib/dialog.ts`**
+
+```ts
+import { Alert, Platform } from 'react-native';
+
+// react-native's Alert has no UI on react-native-web: Alert.alert() is a silent
+// no-op there, so every error message and confirm simply vanished on web (a
+// failed save looked like nothing happened, and Delete was unreachable). Route
+// through the browser's own dialogs on web; keep the native Alert elsewhere.
+
+export function notify(title: string, message?: string): void {
+  if (Platform.OS === 'web') {
+    window.alert(message ? `${title}\n\n${message}` : title);
+    return;
+  }
+  Alert.alert(title, message);
+}
+
+export function confirmDestructive(
+  title: string,
+  message: string,
+  confirmLabel: string,
+  onConfirm: () => void,
+): void {
+  if (Platform.OS === 'web') {
+    if (window.confirm(`${title}\n\n${message}`)) onConfirm();
+    return;
+  }
+  Alert.alert(title, message, [
+    { text: 'Keep it', style: 'cancel' },
+    { text: confirmLabel, style: 'destructive', onPress: onConfirm },
+  ]);
+}
+```
+
+- [ ] **Step 2: Swap the call sites.** Drop `Alert` from both screens' `react-native` imports, add `import { notify } from '@/lib/dialog';` (capture) and `import { confirmDestructive, notify } from '@/lib/dialog';` (moment detail), and replace every `Alert.alert(...)` per the updated Task 9 / Task 10 blocks above. `grep -n Alert` on both screens must return nothing.
+
+- [ ] **Step 3: Verify**
+
+```bash
+rm -f .expo/types/router.d.ts
+npx tsc --noEmit && npm test
+```
+
+Expected: tsc exit 0; full suite green. Then confirm at runtime on web that "Delete moment" actually raises a confirm (it previously did nothing) — cancel it so no data is touched.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add src/lib/dialog.ts "src/app/(app)/capture.tsx" "src/app/(app)/moment/[id].tsx"
+git commit -m "fix: cross-platform dialogs so errors and the delete confirm appear on web (Alert is a no-op on RN-web)"
+```
 
 ---
 
