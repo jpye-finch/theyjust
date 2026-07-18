@@ -30,7 +30,12 @@ export type NewMoment = {
   note: string;
 };
 
-export type MomentEdit = { occurredOn: string; note: string };
+export type MomentEdit = {
+  milestoneId: string | null;
+  customTitle: string | null;
+  occurredOn: string;
+  note: string;
+};
 
 // ALWAYS filter by child_id: RLS is a per-row post-filter, so an unfiltered
 // select would scan every family's moments (Plan 1 guardrail).
@@ -73,7 +78,12 @@ export async function createMoment(input: NewMoment): Promise<Moment> {
 export async function updateMoment(id: string, edit: MomentEdit): Promise<Moment> {
   const { data, error } = await supabase
     .from('moments')
-    .update({ occurred_on: edit.occurredOn, note: edit.note })
+    .update({
+      milestone_id: edit.milestoneId,
+      custom_title: edit.customTitle,
+      occurred_on: edit.occurredOn,
+      note: edit.note,
+    })
     .eq('id', id)
     .select()
     .single();
@@ -84,6 +94,23 @@ export async function updateMoment(id: string, edit: MomentEdit): Promise<Moment
 export async function deleteMoment(id: string): Promise<void> {
   const { error } = await supabase.from('moments').delete().eq('id', id);
   if (error) throw error;
+}
+
+// Storage first, deliberately: the row is the only record of the path, so
+// dropping it first would strand the blob in the bucket with nothing pointing
+// at it. If the object goes but the row fails, the moment shows a broken photo
+// the parent can remove again, which is the recoverable direction.
+export async function deleteMomentPhoto(photoId: string, storagePath: string): Promise<void> {
+  const { error: storageError } = await supabase.storage
+    .from('moment-photos')
+    .remove([storagePath]);
+  // Supabase errors are plain objects, not Errors, and the screens test with
+  // `e instanceof Error` before showing a message. Wrapping keeps the real
+  // reason visible instead of falling back to "Please try again".
+  if (storageError) throw new Error(storageError.message);
+
+  const { error } = await supabase.from('moment_photos').delete().eq('id', photoId);
+  if (error) throw new Error(error.message);
 }
 
 export function useTimeline(childId: string | null) {

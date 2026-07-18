@@ -4,6 +4,7 @@ import { renderHook, waitFor } from '@testing-library/react-native';
 import {
   createMoment,
   deleteMoment,
+  deleteMomentPhoto,
   fetchTimeline,
   updateMoment,
   useCreateMoment,
@@ -18,11 +19,16 @@ function withClient(client: QueryClient) {
 }
 
 jest.mock('../../../lib/supabase', () => ({
-  supabase: { from: jest.fn(), auth: { getSession: jest.fn() } },
+  supabase: {
+    from: jest.fn(),
+    auth: { getSession: jest.fn() },
+    storage: { from: jest.fn() },
+  },
 }));
 
 const mockedFrom = supabase.from as jest.Mock;
 const mockedGetSession = supabase.auth.getSession as jest.Mock;
+const mockedStorageFrom = supabase.storage.from as jest.Mock;
 
 afterEach(() => jest.clearAllMocks());
 
@@ -76,15 +82,80 @@ describe('createMoment', () => {
 });
 
 describe('updateMoment', () => {
-  it('updates only the editable columns', async () => {
+  it('updates every column the grant allows, title included', async () => {
     const single = jest.fn().mockResolvedValue({ data: { id: 'm1' }, error: null });
     const eq = jest.fn().mockReturnValue({ select: () => ({ single }) });
     const update = jest.fn().mockReturnValue({ eq });
     mockedFrom.mockReturnValue({ update });
 
-    await updateMoment('m1', { occurredOn: '2026-05-02', note: 'edited' });
-    expect(update).toHaveBeenCalledWith({ occurred_on: '2026-05-02', note: 'edited' });
+    await updateMoment('m1', {
+      milestoneId: 'rolled_over',
+      customTitle: null,
+      occurredOn: '2026-05-02',
+      note: 'edited',
+    });
+    expect(update).toHaveBeenCalledWith({
+      milestone_id: 'rolled_over',
+      custom_title: null,
+      occurred_on: '2026-05-02',
+      note: 'edited',
+    });
     expect(eq).toHaveBeenCalledWith('id', 'm1');
+  });
+
+  // A moment is a milestone XOR its own words, so switching to custom wording
+  // has to clear the milestone or the DB check constraint rejects the update.
+  it('clears the milestone when the parent switches to their own words', async () => {
+    const single = jest.fn().mockResolvedValue({ data: { id: 'm1' }, error: null });
+    const eq = jest.fn().mockReturnValue({ select: () => ({ single }) });
+    const update = jest.fn().mockReturnValue({ eq });
+    mockedFrom.mockReturnValue({ update });
+
+    await updateMoment('m1', {
+      milestoneId: null,
+      customTitle: 'First haircut',
+      occurredOn: '2026-05-02',
+      note: '',
+    });
+    expect(update).toHaveBeenCalledWith({
+      milestone_id: null,
+      custom_title: 'First haircut',
+      occurred_on: '2026-05-02',
+      note: '',
+    });
+  });
+});
+
+describe('deleteMomentPhoto', () => {
+  it('removes the storage object before the row that names it', async () => {
+    const order: string[] = [];
+    const remove = jest.fn().mockImplementation(async () => {
+      order.push('storage');
+      return { error: null };
+    });
+    const eq = jest.fn().mockImplementation(async () => {
+      order.push('row');
+      return { error: null };
+    });
+    mockedStorageFrom.mockReturnValue({ remove });
+    mockedFrom.mockReturnValue({ delete: () => ({ eq }) });
+
+    await deleteMomentPhoto('p1', 'm1/m1-0.jpg');
+
+    expect(remove).toHaveBeenCalledWith(['m1/m1-0.jpg']);
+    expect(eq).toHaveBeenCalledWith('id', 'p1');
+    // Row first would lose the path and strand the blob forever.
+    expect(order).toEqual(['storage', 'row']);
+  });
+
+  it('keeps the row when the storage delete fails', async () => {
+    const remove = jest.fn().mockResolvedValue({ error: { message: 'nope' } });
+    const eq = jest.fn().mockResolvedValue({ error: null });
+    mockedStorageFrom.mockReturnValue({ remove });
+    mockedFrom.mockReturnValue({ delete: () => ({ eq }) });
+
+    await expect(deleteMomentPhoto('p1', 'm1/m1-0.jpg')).rejects.toThrow('nope');
+    expect(eq).not.toHaveBeenCalled();
   });
 });
 
@@ -134,7 +205,10 @@ describe('mutation hooks invalidate both moment views', () => {
     const invalidate = jest.spyOn(client, 'invalidateQueries');
 
     const { result } = await renderHook(() => useUpdateMoment('child-1'), { wrapper: withClient(client) });
-    await result.current.mutateAsync({ id: 'm1', edit: { occurredOn: '2026-01-02', note: 'x' } });
+    await result.current.mutateAsync({
+      id: 'm1',
+      edit: { milestoneId: null, customTitle: 'x', occurredOn: '2026-01-02', note: 'x' },
+    });
 
     await waitFor(() => {
       expect(invalidate).toHaveBeenCalledWith({ queryKey: ['timeline', 'child-1'] });

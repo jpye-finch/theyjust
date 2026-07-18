@@ -18,13 +18,17 @@ export type CaptureSubmit = {
 };
 
 type Props = {
-  /** Preselected catalogue milestone (from a Milestones row), or null. */
+  /** Preselected catalogue milestone (from a Milestones row, or the moment being edited). */
   initialMilestoneId: string | null;
   defaultOccurredOn: string;
   photoCount: number;
   onPickPhoto: () => void;
   onSubmit: (value: CaptureSubmit) => void;
   busy?: boolean;
+  /** Editing an existing moment pre-fills these; capturing leaves them blank. */
+  initialCustomTitle?: string;
+  initialNote?: string;
+  submitLabel?: string;
 };
 
 export function CaptureForm({
@@ -34,13 +38,16 @@ export function CaptureForm({
   onPickPhoto,
   onSubmit,
   busy,
+  initialCustomTitle = '',
+  initialNote = '',
+  submitLabel = 'Save moment',
 }: Props) {
-  // defaultOccurredOn seeds state once; the capture screen mounts this form fresh
-  // per moment, so the prop stays stable for the component's lifetime.
+  // These seed state once. Capture mounts the form fresh per moment, and editing
+  // mounts it fresh per moment too, so the props stay stable for its lifetime.
   const [milestoneId, setMilestoneId] = useState<string | null>(initialMilestoneId);
-  const [customTitle, setCustomTitle] = useState('');
+  const [customTitle, setCustomTitle] = useState(initialCustomTitle);
   const [occurredOn, setOccurredOn] = useState(defaultOccurredOn);
-  const [note, setNote] = useState('');
+  const [note, setNote] = useState(initialNote);
   const [error, setError] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
 
@@ -115,7 +122,7 @@ export function CaptureForm({
           {error}
         </Text>
       ) : null}
-      <PrimaryButton label="Save moment" onPress={handleSubmit} busy={busy} />
+      <PrimaryButton label={submitLabel} onPress={handleSubmit} busy={busy} />
       <MilestonePicker
         visible={picking}
         onClose={() => setPicking(false)}

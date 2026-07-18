@@ -1,12 +1,10 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { DateField } from '@/components/DateField';
-import { Field } from '@/components/Field';
-import { PrimaryButton } from '@/components/PrimaryButton';
 import { TextButton } from '@/components/TextButton';
 import { ageParts, formatAgeParts } from '@/features/children/age';
 import { useSelectedChild } from '@/features/children/selectedChild';
+import { CaptureForm, type CaptureSubmit } from '@/features/moments/CaptureForm';
 import {
   useDeleteMoment,
   useTimeline,
@@ -17,7 +15,7 @@ import { momentTitle } from '@/features/moments/momentText';
 import { signedPhotoUrl } from '@/features/moments/photoUpload';
 import { ShareCard } from '@/features/moments/ShareCard';
 import { shareMomentCard } from '@/features/moments/shareMoment';
-import { formatDisplayDate, isRealDate } from '@/lib/date';
+import { formatDisplayDate } from '@/lib/date';
 import { confirmDestructive, notify } from '@/lib/dialog';
 import { color, font, radius, space, type } from '@/theme/tokens';
 
@@ -88,21 +86,40 @@ export default function MomentDetailScreen() {
       ) : null}
 
       {editing ? (
-        <EditFields
-          moment={moment}
-          busy={updateMoment.isPending}
-          onCancel={() => setEditing(false)}
-          onSave={(edit) =>
-            updateMoment.mutate(
-              { id: moment.id, edit },
-              {
-                onSuccess: () => setEditing(false),
-                onError: (e) =>
-                  notify('Could not save', e instanceof Error ? e.message : 'Please try again.'),
-              },
-            )
-          }
-        />
+        // Capturing and editing are the same act, so they use the same form.
+        // Reusing it is what makes the title editable at all: the bespoke edit
+        // fields this replaced only ever offered the date and the note.
+        <View style={styles.edit}>
+          <CaptureForm
+            initialMilestoneId={moment.milestone_id}
+            initialCustomTitle={moment.custom_title ?? ''}
+            initialNote={moment.note ?? ''}
+            defaultOccurredOn={moment.occurred_on}
+            submitLabel="Save changes"
+            photoCount={moment.moment_photos.length}
+            onPickPhoto={() => notify('Not yet', 'Photos can only be added while capturing for now.')}
+            busy={updateMoment.isPending}
+            onSubmit={(value: CaptureSubmit) =>
+              updateMoment.mutate(
+                {
+                  id: moment.id,
+                  edit: {
+                    milestoneId: value.milestoneId,
+                    customTitle: value.customTitle,
+                    occurredOn: value.occurredOn,
+                    note: value.note,
+                  },
+                },
+                {
+                  onSuccess: () => setEditing(false),
+                  onError: (e) =>
+                    notify('Could not save', e instanceof Error ? e.message : 'Please try again.'),
+                },
+              )
+            }
+          />
+          <TextButton label="Cancel" onPress={() => setEditing(false)} tone="muted" />
+        </View>
       ) : (
         <>
           {moment.note ? <Text style={styles.note}>{moment.note}</Text> : null}
@@ -119,44 +136,6 @@ export default function MomentDetailScreen() {
   );
 }
 
-function EditFields({
-  moment,
-  busy,
-  onCancel,
-  onSave,
-}: {
-  moment: Moment;
-  busy: boolean;
-  onCancel: () => void;
-  onSave: (edit: { occurredOn: string; note: string }) => void;
-}) {
-  const [occurredOn, setOccurredOn] = useState(moment.occurred_on);
-  const [note, setNote] = useState(moment.note ?? '');
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSave = () => {
-    if (!isRealDate(occurredOn)) {
-      setError('Enter the date as YYYY-MM-DD');
-      return;
-    }
-    setError(null);
-    onSave({ occurredOn, note });
-  };
-
-  return (
-    <View style={styles.edit}>
-      <DateField label="When did it happen?" value={occurredOn} onChange={setOccurredOn} />
-      <Field label="Note" placeholder="Add a little note" value={note} onChangeText={setNote} multiline />
-      {error ? (
-        <Text style={styles.error} role="alert" accessibilityLiveRegion="polite">
-          {error}
-        </Text>
-      ) : null}
-      <PrimaryButton label="Save changes" onPress={handleSave} busy={busy} />
-      <TextButton label="Cancel" onPress={onCancel} tone="muted" />
-    </View>
-  );
-}
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: color.paper },
