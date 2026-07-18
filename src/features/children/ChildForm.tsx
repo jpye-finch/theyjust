@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { StyleSheet, Switch, Text, View } from 'react-native';
+import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { color, font, space, type } from '@/theme/tokens';
@@ -52,13 +53,7 @@ export function ChildForm({ submitLabel, onSubmit, initial, error, busy }: Props
   return (
     <View style={styles.container}>
       <Field label="Name" placeholder="Name" value={name} onChangeText={setName} />
-      <Field
-        label="Date of birth"
-        placeholder="Date of birth (YYYY-MM-DD)"
-        autoCapitalize="none"
-        value={dateOfBirth}
-        onChangeText={setDateOfBirth}
-      />
+      <DateField label="Date of birth" value={dateOfBirth} onChange={setDateOfBirth} />
       <View style={styles.switchRow}>
         <Text style={styles.switchLabel}>Born before 37 weeks?</Text>
         <Switch
@@ -70,13 +65,7 @@ export function ChildForm({ submitLabel, onSubmit, initial, error, busy }: Props
         />
       </View>
       {premature ? (
-        <Field
-          label="Due date"
-          placeholder="Due date (YYYY-MM-DD)"
-          autoCapitalize="none"
-          value={dueDate}
-          onChangeText={setDueDate}
-        />
+        <DateField label="Due date" value={dueDate} onChange={setDueDate} />
       ) : null}
       {message ? (
         <Text style={styles.error} role="alert" accessibilityLiveRegion="polite">

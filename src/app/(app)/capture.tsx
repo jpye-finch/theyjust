@@ -1,10 +1,10 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TextButton } from '@/components/TextButton';
 import { useSelectedChild } from '@/features/children/selectedChild';
 import { CaptureForm, type CaptureSubmit } from '@/features/moments/CaptureForm';
-import { CATALOGUE, celebrationText } from '@/features/milestones/catalogue';
 import { useCreateMoment, type Moment } from '@/features/moments/momentQueries';
 import { pickPhoto, resizePhoto, uploadMomentPhoto, type PickedPhoto } from '@/features/moments/photoUpload';
 import { todayIso } from '@/features/moments/today';
@@ -15,6 +15,7 @@ export default function CaptureScreen() {
   const router = useRouter();
   const { milestoneId } = useLocalSearchParams<{ milestoneId?: string }>();
   const { selected } = useSelectedChild();
+  const qc = useQueryClient();
   const createMoment = useCreateMoment(selected?.id ?? '');
   const [photos, setPhotos] = useState<PickedPhoto[]>([]);
   const [formKey, setFormKey] = useState(0);
@@ -28,9 +29,6 @@ export default function CaptureScreen() {
       setPhotos([]);
     }, []),
   );
-
-  const entry = milestoneId ? CATALOGUE.find((e) => e.id === milestoneId) : undefined;
-  const presetTitle = entry ? celebrationText(entry) : null;
 
   if (!selected) {
     return (
@@ -57,7 +55,7 @@ export default function CaptureScreen() {
     try {
       moment = await createMoment.mutateAsync({
         childId: selected.id,
-        milestoneId: entry?.id ?? null,
+        milestoneId: value.milestoneId,
         customTitle: value.customTitle,
         occurredOn: value.occurredOn,
         note: value.note,
@@ -72,6 +70,13 @@ export default function CaptureScreen() {
     if (uploads.some((u) => u.status === 'rejected')) {
       notify('Moment saved', "One or more photos didn't upload.");
     }
+    // createMoment's onSuccess already refetched the timeline — but that ran
+    // BEFORE these uploads finished, so the new moment got cached with no
+    // photos. Refresh again now the rows exist, or the photo only turns up
+    // after an app restart.
+    if (photos.length > 0) {
+      await qc.invalidateQueries({ queryKey: ['timeline', selected.id] });
+    }
     router.back();
   };
 
@@ -83,7 +88,7 @@ export default function CaptureScreen() {
       </View>
       <CaptureForm
         key={formKey}
-        presetTitle={presetTitle}
+        initialMilestoneId={milestoneId ?? null}
         defaultOccurredOn={todayIso()}
         photoCount={photos.length}
         onPickPhoto={handlePick}

@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { TextButton } from '@/components/TextButton';
@@ -16,7 +17,7 @@ import { momentTitle } from '@/features/moments/momentText';
 import { signedPhotoUrl } from '@/features/moments/photoUpload';
 import { ShareCard } from '@/features/moments/ShareCard';
 import { shareMomentCard } from '@/features/moments/shareMoment';
-import { isRealDate } from '@/lib/date';
+import { formatDisplayDate, isRealDate } from '@/lib/date';
 import { confirmDestructive, notify } from '@/lib/dialog';
 import { color, font, radius, space, type } from '@/theme/tokens';
 
@@ -83,7 +84,7 @@ export default function MomentDetailScreen() {
         <Image accessible={false} source={{ uri: photoUrl }} style={styles.photo} resizeMode="cover" />
       ) : null}
       <Text style={styles.title}>{momentTitle(moment)}</Text>
-      <Text style={styles.meta}>{`${moment.occurred_on} · ${ageText}`}</Text>
+      <Text style={styles.meta}>{`${formatDisplayDate(moment.occurred_on)} · ${ageText}`}</Text>
 
       {editing ? (
         <EditFields
@@ -143,13 +144,7 @@ function EditFields({
 
   return (
     <View style={styles.edit}>
-      <Field
-        label="When did it happen?"
-        placeholder="YYYY-MM-DD"
-        autoCapitalize="none"
-        value={occurredOn}
-        onChangeText={setOccurredOn}
-      />
+      <DateField label="When did it happen?" value={occurredOn} onChange={setOccurredOn} />
       <Field label="Note" placeholder="Add a little note" value={note} onChangeText={setNote} multiline />
       {error ? (
         <Text style={styles.error} role="alert" accessibilityLiveRegion="polite">

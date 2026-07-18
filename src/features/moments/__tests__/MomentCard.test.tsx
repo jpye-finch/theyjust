@@ -20,7 +20,7 @@ describe('MomentCard', () => {
     );
     expect(screen.getByText('They just rolled over!')).toBeTruthy();
     // Date and age render as one meta line; getByText matches a Text's full content.
-    expect(screen.getByText('2026-05-29 · 4 months, 2 weeks')).toBeTruthy();
+    expect(screen.getByText('29 May 2026 · 4 months, 2 weeks')).toBeTruthy();
     expect(screen.getByText('flipped right over')).toBeTruthy();
     expect(screen.getByText('Logged by you')).toBeTruthy();
     expect(screen.queryByTestId('moment-photo')).toBeNull();

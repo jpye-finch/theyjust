@@ -6,3 +6,36 @@ export function isRealDate(iso: string): boolean {
   const d = new Date(`${iso}T00:00:00Z`);
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === iso;
 }
+
+// A Date's LOCAL calendar day as YYYY-MM-DD. Local (not toISOString) so a date
+// picked late in the evening never jumps a day in a negative-UTC zone.
+export function toIsoDate(d: Date): string {
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${month}-${day}`;
+}
+
+const MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+// How a stored date is shown to a parent: "18 July 2026", never a raw ISO
+// string. Read straight off the string instead of via Date, so no device or
+// test timezone can shift the day. Anything that is not a real date is passed
+// through unchanged rather than rendered as "NaN Undefined NaN".
+export function formatDisplayDate(iso: string): string {
+  if (!isRealDate(iso)) return iso;
+  const [year, month, day] = iso.split('-');
+  return `${Number(day)} ${MONTHS[Number(month) - 1]} ${year}`;
+}

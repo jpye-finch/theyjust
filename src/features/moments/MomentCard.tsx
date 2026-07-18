@@ -1,5 +1,6 @@
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { ageParts, formatAgeParts } from '../children/age';
+import { formatDisplayDate } from '../../lib/date';
 import { color, font, hairline, space, type } from '@/theme/tokens';
 import type { Moment } from './momentQueries';
 import { momentTitle } from './momentText';
@@ -28,7 +29,7 @@ export function MomentCard({ moment, childDateOfBirth, loggedByYou, photoUrl }: 
       ) : null}
       <View style={styles.body}>
         <Text style={styles.title}>{momentTitle(moment)}</Text>
-        <Text style={styles.meta}>{`${moment.occurred_on} · ${ageText}`}</Text>
+        <Text style={styles.meta}>{`${formatDisplayDate(moment.occurred_on)} · ${ageText}`}</Text>
         {moment.note ? <Text style={styles.note}>{moment.note}</Text> : null}
         <Text style={styles.author}>{`Logged by ${loggedByYou ? 'you' : 'a co-parent'}`}</Text>
       </View>
