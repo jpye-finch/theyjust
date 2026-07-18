@@ -1305,6 +1305,12 @@ import { useTimeline, type Moment } from '@/features/moments/momentQueries';
 import { signedPhotoUrl } from '@/features/moments/photoUpload';
 import { color, font, space, type } from '@/theme/tokens';
 
+// useTimeline returns `data: undefined` while loading and whenever it is disabled
+// (no child selected). Falling back to a fresh `[]` on every render would hand
+// useFirstPhotoUrls a new dependency each render and spin its always-setState
+// effect without end on the empty state. One shared reference keeps it stable.
+const NO_MOMENTS: Moment[] = [];
+
 function useFirstPhotoUrls(moments: Moment[]): Record<string, string> {
   const [urls, setUrls] = useState<Record<string, string>>({});
   useEffect(() => {
@@ -1331,7 +1337,8 @@ export default function TimelineScreen() {
   const router = useRouter();
   const { session } = useSession();
   const { selected, loading } = useSelectedChild();
-  const { data: moments = [] } = useTimeline(selected?.id ?? null);
+  const { data } = useTimeline(selected?.id ?? null);
+  const moments = data ?? NO_MOMENTS;
   const photoUrls = useFirstPhotoUrls(moments);
 
   if (loading) return null;
