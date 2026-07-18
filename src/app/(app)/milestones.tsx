@@ -76,11 +76,21 @@ export default function MilestonesScreen() {
         <Text style={styles.sectionHeader}>{section.title}</Text>
       )}
       renderItem={({ item }) => (
-        <MilestoneRow
-          entry={item}
-          comparisonMonths={age.comparisonMonths}
-          achievedAgeText={achieved[item.id] ?? null}
-        />
+        <Pressable
+          onPress={() =>
+            achieved[item.id]
+              ? undefined
+              : router.push({ pathname: '/capture', params: { milestoneId: item.id } })
+          }
+          accessibilityRole="button"
+          accessibilityLabel={achieved[item.id] ? item.title : `Log ${item.title}`}
+        >
+          <MilestoneRow
+            entry={item}
+            comparisonMonths={age.comparisonMonths}
+            achievedAgeText={achieved[item.id] ?? null}
+          />
+        </Pressable>
       )}
     />
   );
