@@ -37,7 +37,10 @@ export function DateField({ label, value, onChange }: Props) {
           <DateTimePicker
             value={current}
             mode="date"
-            display="default"
+            // iOS 'default' resolves to the compact pill on iOS 14+, which would
+            // sit under our own field as a second date control needing a second
+            // tap. 'inline' opens Apple's full calendar right there instead.
+            display={Platform.OS === 'ios' ? 'inline' : 'default'}
             onChange={(event, selected) => {
               // Android's dialog dismisses itself and reports set/dismissed;
               // iOS fires on every spin, so it stays open until Done.
