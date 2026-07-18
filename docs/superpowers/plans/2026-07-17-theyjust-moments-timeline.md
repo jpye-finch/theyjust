@@ -1556,9 +1556,10 @@ export function todayIso(): string {
 
 - [ ] **Step 3: Register the capture modal.** In `src/app/_layout.tsx` (the ROOT layout), the `(app)` group is a Stack.Screen inside the protected stack; the capture route is a tab-hidden screen (Task 8 set `href: null`). To present it as a modal, add a Stack around the tabs is unnecessary — expo-router presents `/capture` as a full screen pushed over the tabs, which is acceptable for MVP. No change needed here; `router.push('/capture')` already works because `capture.tsx` lives in the `(app)` group.
 
-Verify the route resolves:
+Verify the route resolves (remove the git-ignored stale typed-routes file first, as in Task 8, so `router.push('/capture')` compiles locally the way it does in CI):
 
 ```bash
+rm -f .expo/types/router.d.ts
 npx tsc --noEmit
 ```
 
@@ -1610,6 +1611,7 @@ to:
 - [ ] **Step 5: Verify**
 
 ```bash
+rm -f .expo/types/router.d.ts
 npx tsc --noEmit && npm test
 ```
 
