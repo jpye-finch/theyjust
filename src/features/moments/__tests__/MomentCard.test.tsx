@@ -22,7 +22,8 @@ describe('MomentCard', () => {
     // Date and age render as one meta line; getByText matches a Text's full content.
     expect(screen.getByText('29 May 2026 · 4 months, 2 weeks')).toBeTruthy();
     expect(screen.getByText('flipped right over')).toBeTruthy();
-    expect(screen.getByText('Logged by you')).toBeTruthy();
+    // Your own moments carry no byline — it would be on every card.
+    expect(screen.queryByText(/Logged by/)).toBeNull();
     expect(screen.queryByTestId('moment-photo')).toBeNull();
   });
 

@@ -31,7 +31,9 @@ export function MomentCard({ moment, childDateOfBirth, loggedByYou, photoUrl }: 
         <Text style={styles.title}>{momentTitle(moment)}</Text>
         <Text style={styles.meta}>{`${formatDisplayDate(moment.occurred_on)} · ${ageText}`}</Text>
         {moment.note ? <Text style={styles.note}>{moment.note}</Text> : null}
-        <Text style={styles.author}>{`Logged by ${loggedByYou ? 'you' : 'a co-parent'}`}</Text>
+        {/* Your own moments need no byline — it's every card. Only a co-parent's
+            is worth attributing. */}
+        {loggedByYou ? null : <Text style={styles.author}>Logged by a co-parent</Text>}
       </View>
     </View>
   );
