@@ -1,6 +1,6 @@
 import Feather from '@expo/vector-icons/Feather';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { DateField } from '@/components/DateField';
 import { Field } from '@/components/Field';
 import { PrimaryButton } from '@/components/PrimaryButton';
@@ -9,6 +9,10 @@ import { color, font, radius, space, type } from '@/theme/tokens';
 import { isRealDate } from '../../lib/date';
 import { CATALOGUE, celebrationText } from '../milestones/catalogue';
 import { MilestonePicker } from './MilestonePicker';
+
+/** A photo already saved against the moment being edited. `url` is signed, and
+ *  null while it is still being fetched (or if signing failed). */
+export type ExistingPhoto = { id: string; url: string | null };
 
 export type CaptureSubmit = {
   milestoneId: string | null;
@@ -29,7 +33,12 @@ type Props = {
   initialCustomTitle?: string;
   initialNote?: string;
   submitLabel?: string;
+  /** Editing only: photos already on the moment, shown so they can be removed. */
+  existingPhotos?: ExistingPhoto[];
+  onRemovePhoto?: (photoId: string) => void;
 };
+
+const NO_PHOTOS: ExistingPhoto[] = [];
 
 export function CaptureForm({
   initialMilestoneId,
@@ -41,6 +50,8 @@ export function CaptureForm({
   initialCustomTitle = '',
   initialNote = '',
   submitLabel = 'Save moment',
+  existingPhotos = NO_PHOTOS,
+  onRemovePhoto,
 }: Props) {
   // These seed state once. Capture mounts the form fresh per moment, and editing
   // mounts it fresh per moment too, so the props stay stable for its lifetime.
@@ -104,17 +115,49 @@ export function CaptureForm({
         onChangeText={setNote}
         multiline
       />
+      {existingPhotos.length > 0 ? (
+        <View style={styles.photoRow}>
+          {existingPhotos.map((photo) => (
+            <View key={photo.id} style={styles.thumbWrap}>
+              {/* The empty plate holds the slot while the signed URL resolves,
+                  so the row does not jump as each photo arrives. */}
+              {photo.url ? (
+                <Image
+                  accessible={false}
+                  source={{ uri: photo.url }}
+                  style={styles.thumb}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={styles.thumb} />
+              )}
+              <Pressable
+                style={styles.thumbRemove}
+                onPress={() => onRemovePhoto?.(photo.id)}
+                accessibilityRole="button"
+                accessibilityLabel="Remove photo"
+              >
+                <Feather name="x" size={13} color={color.onDamson} />
+              </Pressable>
+            </View>
+          ))}
+        </View>
+      ) : null}
       <Pressable style={styles.photoAdd} onPress={onPickPhoto} accessibilityRole="button">
-        {/* The glyph carries the state: an invitation before, a confirmation after. */}
+        {/* The glyph carries the state: an invitation before, a confirmation after.
+            Once thumbnails are on screen they ARE the confirmation, so the control
+            goes back to being a plain invitation to add another. */}
         <Feather
-          name={photoCount === 0 ? 'camera' : 'check'}
+          name={photoCount === 0 || existingPhotos.length > 0 ? 'camera' : 'check'}
           size={16}
           color={color.damson}
         />
         <Text style={styles.photoAddText}>
-          {photoCount === 0
-            ? 'Add a photo'
-            : `${photoCount} photo${photoCount === 1 ? '' : 's'} added`}
+          {existingPhotos.length > 0
+            ? 'Add another photo'
+            : photoCount === 0
+              ? 'Add a photo'
+              : `${photoCount} photo${photoCount === 1 ? '' : 's'} added`}
         </Text>
       </Pressable>
       {error ? (
@@ -155,5 +198,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   photoAddText: { fontFamily: font.medium, fontSize: type.label, color: color.damson },
+  photoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  // The remove control overhangs the plate's corner, so it needs room around the
+  // thumbnail rather than clipping against the next one.
+  thumbWrap: { paddingTop: space.sm, paddingRight: space.sm },
+  thumb: { width: 76, height: 76, borderRadius: radius.md, backgroundColor: color.paperRaise },
+  thumbRemove: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: color.damson,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   error: { fontFamily: font.medium, fontSize: type.label, color: color.damson },
 });

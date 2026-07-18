@@ -1,20 +1,52 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TextButton } from '@/components/TextButton';
 import { useSelectedChild } from '@/features/children/selectedChild';
 import { CaptureForm, type CaptureSubmit } from '@/features/moments/CaptureForm';
 import {
+  deleteMomentPhoto,
   useCreateMoment,
   useTimeline,
   useUpdateMoment,
   type Moment,
+  type MomentPhoto,
 } from '@/features/moments/momentQueries';
-import { pickPhoto, resizePhoto, uploadMomentPhoto, type PickedPhoto } from '@/features/moments/photoUpload';
+import {
+  pickPhoto,
+  resizePhoto,
+  signedPhotoUrl,
+  uploadMomentPhoto,
+  type PickedPhoto,
+} from '@/features/moments/photoUpload';
 import { todayIso } from '@/features/moments/today';
-import { notify } from '@/lib/dialog';
+import { confirmDestructive, notify } from '@/lib/dialog';
 import { color, font, space, type } from '@/theme/tokens';
+
+const NO_PHOTOS: MomentPhoto[] = [];
+
+// Keyed on the photos' ids and paths, not the array itself: react-query hands
+// back a fresh array on every refetch, and depending on that identity spun this
+// effect's setState in a loop (the same trap the Timeline hit on its empty state).
+function useSignedUrls(photos: MomentPhoto[]): Record<string, string | null> {
+  const [urls, setUrls] = useState<Record<string, string | null>>({});
+  const key = photos.map((p) => `${p.id}:${p.storage_path}`).join('|');
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const entries = await Promise.all(
+        photos.map(async (p) => [p.id, await signedPhotoUrl(p.storage_path)] as const),
+      );
+      if (!cancelled) setUrls(Object.fromEntries(entries));
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+  return urls;
+}
 
 export default function CaptureScreen() {
   const router = useRouter();
@@ -32,6 +64,10 @@ export default function CaptureScreen() {
   // Capturing and editing are the same act, so they are the same screen. The
   // moment comes from the timeline cache the previous screen already loaded.
   const editing = momentId ? moments?.find((m) => m.id === momentId) : undefined;
+  const existing = editing
+    ? [...editing.moment_photos].sort((a, b) => a.position - b.position)
+    : NO_PHOTOS;
+  const photoUrls = useSignedUrls(existing);
 
   if (!selected) {
     return (
@@ -62,7 +98,36 @@ export default function CaptureScreen() {
     const picked = await pickPhoto();
     if (!picked) return;
     const resized = await resizePhoto(picked);
-    setPhotos((prev) => [...prev, resized]);
+    // Capturing has no moment row yet, so picked photos are held until save.
+    // Editing already has one, so there is nothing to wait for: upload now and
+    // let the refreshed timeline put the thumbnail on screen.
+    if (!editing) {
+      setPhotos((prev) => [...prev, resized]);
+      return;
+    }
+    const nextPosition = existing.reduce((max, p) => Math.max(max, p.position), -1) + 1;
+    try {
+      await uploadMomentPhoto(editing.id, `${editing.id}-${nextPosition}`, resized, nextPosition);
+    } catch (e) {
+      notify('Could not add photo', e instanceof Error ? e.message : 'Please try again.');
+      return;
+    }
+    await qc.invalidateQueries({ queryKey: ['timeline', selected.id] });
+  };
+
+  // Removing is not undoable — the object leaves the bucket — so it asks first.
+  const handleRemovePhoto = (photoId: string) => {
+    const photo = existing.find((p) => p.id === photoId);
+    if (!photo) return;
+    confirmDestructive('Remove this photo?', 'It cannot be brought back.', 'Remove', async () => {
+      try {
+        await deleteMomentPhoto(photo.id, photo.storage_path);
+      } catch (e) {
+        notify('Could not remove', e instanceof Error ? e.message : 'Please try again.');
+        return;
+      }
+      await qc.invalidateQueries({ queryKey: ['timeline', selected.id] });
+    });
   };
 
   // Two phases with separate failure handling: once the moment row is committed
@@ -131,12 +196,12 @@ export default function CaptureScreen() {
         initialNote={editing?.note ?? ''}
         defaultOccurredOn={editing ? editing.occurred_on : todayIso()}
         submitLabel={editing ? 'Save changes' : 'Save moment'}
-        photoCount={editing ? editing.moment_photos.length : photos.length}
-        onPickPhoto={
-          editing
-            ? () => notify('Not yet', 'Photos can only be added while capturing for now.')
-            : handlePick
+        photoCount={editing ? existing.length : photos.length}
+        existingPhotos={
+          editing ? existing.map((p) => ({ id: p.id, url: photoUrls[p.id] ?? null })) : undefined
         }
+        onRemovePhoto={editing ? handleRemovePhoto : undefined}
+        onPickPhoto={handlePick}
         onSubmit={handleSubmit}
         busy={createMoment.isPending || updateMoment.isPending}
       />

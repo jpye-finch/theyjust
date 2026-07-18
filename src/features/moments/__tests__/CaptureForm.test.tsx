@@ -169,4 +169,47 @@ describe('CaptureForm', () => {
     );
     expect(screen.getByText('1 photo added')).toBeTruthy();
   });
+
+  it('offers a remove control per existing photo when editing', async () => {
+    const onRemovePhoto = jest.fn();
+    const user = userEvent.setup();
+    await render(
+      <CaptureForm
+        initialMilestoneId={null}
+        initialCustomTitle="First swim"
+        defaultOccurredOn="2026-05-01"
+        photoCount={2}
+        existingPhotos={[
+          { id: 'photo-a', url: 'https://example.test/a.jpg' },
+          { id: 'photo-b', url: null },
+        ]}
+        onRemovePhoto={onRemovePhoto}
+        onPickPhoto={jest.fn()}
+        onSubmit={jest.fn()}
+      />,
+    );
+    // A photo still awaiting its signed URL keeps its slot, so both are removable.
+    const removes = screen.getAllByLabelText('Remove photo');
+    expect(removes).toHaveLength(2);
+    await user.press(removes[1]);
+    expect(onRemovePhoto).toHaveBeenCalledWith('photo-b');
+  });
+
+  it('invites another photo once thumbnails are showing', async () => {
+    await render(
+      <CaptureForm
+        initialMilestoneId={null}
+        initialCustomTitle="First swim"
+        defaultOccurredOn="2026-05-01"
+        photoCount={1}
+        existingPhotos={[{ id: 'photo-a', url: 'https://example.test/a.jpg' }]}
+        onRemovePhoto={jest.fn()}
+        onPickPhoto={jest.fn()}
+        onSubmit={jest.fn()}
+      />,
+    );
+    // The thumbnails are the confirmation, so "1 photo added" would just restate them.
+    expect(screen.getByText('Add another photo')).toBeTruthy();
+    expect(screen.queryByText('1 photo added')).toBeNull();
+  });
 });
