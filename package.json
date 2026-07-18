@@ -53,7 +53,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "test": "jest"
+    "test": "TZ=America/Los_Angeles jest"
   },
   "jest": {
     "preset": "jest-expo",
