@@ -1654,6 +1654,47 @@ git commit -m "feat: capture modal — create moment + upload photos; milestone 
 
 ---
 
+### Task 9b: Make the jest timezone pin effective (review follow-up)
+
+Adding `today.test.ts` (Task 9, Step 2) surfaced a latent test-infra bug: `jest.setup.js` sets `process.env.TZ = 'America/Los_Angeles'`, but V8 caches the zone before `setupFiles` runs, so the assignment is a no-op — tests actually ran in the host zone (Europe/London locally, UTC in CI), which is non-deterministic and defeats the "UTC-vs-local leaks fail in CI" intent. Proven with a probe: `Intl…timeZone` reported `Europe/London` despite the assignment. The fix sets `TZ` in the shell **before** Node launches, via the npm script. Commit this BEFORE the Task 9 review-fix commit so `today.test.ts` is green.
+
+**Files:**
+- Modify: `package.json` (the `test` script)
+- Modify: `jest.setup.js` (correct the comment; keep the assignment as documentation)
+
+- [ ] **Step 1:** In `package.json`, change the script to:
+
+```json
+    "test": "TZ=America/Los_Angeles jest"
+```
+
+- [ ] **Step 2:** In `jest.setup.js`, replace the timezone comment so it reads (keep the `process.env.TZ = 'America/Los_Angeles';` line beneath it):
+
+```js
+// Deterministic non-UTC timezone so UTC-vs-local date leaks fail in CI too.
+// NOTE: the EFFECTIVE pin is `TZ=America/Los_Angeles` in the npm "test" script.
+// V8 caches the zone before setupFiles runs, so setting it here alone is a no-op
+// (proven: Intl still reported the host zone). Kept as intent documentation and
+// for any runner that reads process.env.TZ before launching Node.
+```
+
+- [ ] **Step 3: Verify** the whole suite still passes under the now-effective LA pin (nothing else depended on the accidental host zone):
+
+```bash
+npm test
+```
+
+Expected: all suites green (existing tests are TZ-agnostic; only the new `today.test.ts` needed the effective pin).
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add package.json jest.setup.js
+git commit -m "test: make the America/Los_Angeles jest pin effective (set TZ before Node so V8 honours it)"
+```
+
+---
+
 ### Task 10: Moment detail screen (view / edit / delete)
 
 Full view of a moment: photo(s), title, date, age, note, who logged it. Edit the date/note inline; delete with a confirm. Share (Task 11) plugs in here.
