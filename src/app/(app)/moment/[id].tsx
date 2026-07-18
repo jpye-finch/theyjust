@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Field } from '@/components/Field';
 import { PrimaryButton } from '@/components/PrimaryButton';
@@ -14,6 +14,8 @@ import {
 } from '@/features/moments/momentQueries';
 import { momentTitle } from '@/features/moments/momentText';
 import { signedPhotoUrl } from '@/features/moments/photoUpload';
+import { ShareCard } from '@/features/moments/ShareCard';
+import { shareMomentCard } from '@/features/moments/shareMoment';
 import { isRealDate } from '@/lib/date';
 import { color, font, radius, space, type } from '@/theme/tokens';
 
@@ -28,6 +30,7 @@ export default function MomentDetailScreen() {
 
   const [editing, setEditing] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const shareRef = useRef<View>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -107,10 +110,14 @@ export default function MomentDetailScreen() {
         <>
           {moment.note ? <Text style={styles.note}>{moment.note}</Text> : null}
           <View style={styles.actions}>
+            <TextButton label="Share this memory" onPress={() => shareMomentCard(shareRef)} />
             <TextButton label="Delete moment" onPress={confirmDelete} tone="muted" />
           </View>
         </>
       )}
+      <View style={styles.offscreen} pointerEvents="none">
+        <ShareCard ref={shareRef} title={momentTitle(moment)} ageLine={`at ${ageText}`} photoUrl={photoUrl} />
+      </View>
     </ScrollView>
   );
 }
@@ -172,4 +179,5 @@ const styles = StyleSheet.create({
   edit: { gap: space.lg, marginTop: space.sm },
   notFound: { fontFamily: font.body, fontSize: type.body, color: color.inkMuted, padding: space.xl },
   error: { fontFamily: font.medium, fontSize: type.label, color: color.damson },
+  offscreen: { position: 'absolute', left: -10000, top: 0 },
 });
