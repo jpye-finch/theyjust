@@ -1846,9 +1846,10 @@ const styles = StyleSheet.create({
 });
 ```
 
-- [ ] **Step 2: Verify**
+- [ ] **Step 2: Verify** (remove the git-ignored stale typed-routes file first — the whole project is typechecked, including the Timeline's `router.push(`/moment/${id}`)`):
 
 ```bash
+rm -f .expo/types/router.d.ts
 npx tsc --noEmit && npm test
 ```
 
