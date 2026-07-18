@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TextButton } from '@/components/TextButton';
 import { useSelectedChild } from '@/features/children/selectedChild';
@@ -18,17 +18,6 @@ export default function CaptureScreen() {
   const qc = useQueryClient();
   const createMoment = useCreateMoment(selected?.id ?? '');
   const [photos, setPhotos] = useState<PickedPhoto[]>([]);
-  const [formKey, setFormKey] = useState(0);
-
-  // capture is a tab-hidden screen, so it stays mounted after the first visit.
-  // Re-seed the form and drop picked photos each time it regains focus, or the
-  // previous capture's title/date/note/photos would linger into the next one.
-  useFocusEffect(
-    useCallback(() => {
-      setFormKey((k) => k + 1);
-      setPhotos([]);
-    }, []),
-  );
 
   if (!selected) {
     return (
@@ -87,7 +76,6 @@ export default function CaptureScreen() {
         <TextButton label="Cancel" onPress={() => router.back()} tone="muted" />
       </View>
       <CaptureForm
-        key={formKey}
         initialMilestoneId={milestoneId ?? null}
         defaultOccurredOn={todayIso()}
         photoCount={photos.length}
