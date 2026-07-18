@@ -1467,7 +1467,7 @@ import { TextButton } from '@/components/TextButton';
 import { useSelectedChild } from '@/features/children/selectedChild';
 import { CaptureForm, type CaptureSubmit } from '@/features/moments/CaptureForm';
 import { CATALOGUE, celebrationText } from '@/features/milestones/catalogue';
-import { useCreateMoment } from '@/features/moments/momentQueries';
+import { useCreateMoment, type Moment } from '@/features/moments/momentQueries';
 import { pickPhoto, resizePhoto, uploadMomentPhoto, type PickedPhoto } from '@/features/moments/photoUpload';
 import { todayIso } from '@/features/moments/today';
 import { color, font, space, type } from '@/theme/tokens';
@@ -1498,22 +1498,31 @@ export default function CaptureScreen() {
     setPhotos((prev) => [...prev, resized]);
   };
 
+  // Two phases with separate failure handling: once the moment row is committed
+  // its onSuccess already refetched the timeline, so a failed photo upload must
+  // NOT read as "could not save" (that stranded the user on a saved-but-failed
+  // moment, and a re-tap created a duplicate). Create first, then upload.
   const handleSubmit = async (value: CaptureSubmit) => {
+    let moment: Moment;
     try {
-      const moment = await createMoment.mutateAsync({
+      moment = await createMoment.mutateAsync({
         childId: selected.id,
         milestoneId: entry?.id ?? null,
         customTitle: value.customTitle,
         occurredOn: value.occurredOn,
         note: value.note,
       });
-      await Promise.all(
-        photos.map((p, i) => uploadMomentPhoto(moment.id, `${moment.id}-${i}`, p, i)),
-      );
-      router.back();
     } catch (e) {
       Alert.alert('Could not save', e instanceof Error ? e.message : 'Please try again.');
+      return;
     }
+    const uploads = await Promise.allSettled(
+      photos.map((p, i) => uploadMomentPhoto(moment.id, `${moment.id}-${i}`, p, i)),
+    );
+    if (uploads.some((u) => u.status === 'rejected')) {
+      Alert.alert('Moment saved', "One or more photos didn't upload.");
+    }
+    router.back();
   };
 
   return (
@@ -1546,12 +1555,30 @@ const styles = StyleSheet.create({
 
 ```ts
 // Local calendar date as YYYY-MM-DD (matches the age module's local-day rule).
-export function todayIso(): string {
-  const d = new Date();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${d.getFullYear()}-${m}-${day}`;
+// `now` is injectable so the format and the local-day behaviour are unit-testable.
+export function todayIso(now: Date = new Date()): string {
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${now.getFullYear()}-${m}-${day}`;
 }
+```
+
+Add `src/features/moments/__tests__/today.test.ts` (TZ is pinned to America/Los_Angeles in jest.setup.js, so the local day can differ from the UTC day):
+
+```ts
+import { todayIso } from '../today';
+
+describe('todayIso', () => {
+  it('formats the local calendar date as zero-padded YYYY-MM-DD', () => {
+    expect(todayIso(new Date('2026-07-04T12:00:00Z'))).toBe('2026-07-04');
+    expect(todayIso(new Date('2026-01-09T18:00:00Z'))).toBe('2026-01-09');
+  });
+
+  it('reads the local day, not the UTC day', () => {
+    // 05:30 UTC on 2026-03-10 is still 2026-03-09 in America/Los_Angeles.
+    expect(todayIso(new Date('2026-03-10T05:30:00Z'))).toBe('2026-03-09');
+  });
+});
 ```
 
 - [ ] **Step 3: Register the capture modal.** In `src/app/_layout.tsx` (the ROOT layout), the `(app)` group is a Stack.Screen inside the protected stack; the capture route is a tab-hidden screen (Task 8 set `href: null`). To present it as a modal, add a Stack around the tabs is unnecessary — expo-router presents `/capture` as a full screen pushed over the tabs, which is acceptable for MVP. No change needed here; `router.push('/capture')` already works because `capture.tsx` lives in the `(app)` group.
@@ -1591,12 +1618,13 @@ to:
 ```tsx
       renderItem={({ item }) => (
         <Pressable
-          onPress={() =>
+          onPress={
             achieved[item.id]
               ? undefined
-              : router.push({ pathname: '/capture', params: { milestoneId: item.id } })
+              : () => router.push({ pathname: '/capture', params: { milestoneId: item.id } })
           }
-          accessibilityRole="button"
+          disabled={!!achieved[item.id]}
+          accessibilityRole={achieved[item.id] ? undefined : 'button'}
           accessibilityLabel={achieved[item.id] ? item.title : `Log ${item.title}`}
         >
           <MilestoneRow
