@@ -77,12 +77,13 @@ export default function MilestonesScreen() {
       )}
       renderItem={({ item }) => (
         <Pressable
-          onPress={() =>
+          onPress={
             achieved[item.id]
               ? undefined
-              : router.push({ pathname: '/capture', params: { milestoneId: item.id } })
+              : () => router.push({ pathname: '/capture', params: { milestoneId: item.id } })
           }
-          accessibilityRole="button"
+          disabled={!!achieved[item.id]}
+          accessibilityRole={achieved[item.id] ? undefined : 'button'}
           accessibilityLabel={achieved[item.id] ? item.title : `Log ${item.title}`}
         >
           <MilestoneRow

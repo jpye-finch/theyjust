@@ -5,7 +5,7 @@ import { TextButton } from '@/components/TextButton';
 import { useSelectedChild } from '@/features/children/selectedChild';
 import { CaptureForm, type CaptureSubmit } from '@/features/moments/CaptureForm';
 import { CATALOGUE, celebrationText } from '@/features/milestones/catalogue';
-import { useCreateMoment } from '@/features/moments/momentQueries';
+import { useCreateMoment, type Moment } from '@/features/moments/momentQueries';
 import { pickPhoto, resizePhoto, uploadMomentPhoto, type PickedPhoto } from '@/features/moments/photoUpload';
 import { todayIso } from '@/features/moments/today';
 import { color, font, space, type } from '@/theme/tokens';
@@ -36,22 +36,31 @@ export default function CaptureScreen() {
     setPhotos((prev) => [...prev, resized]);
   };
 
+  // Two phases with separate failure handling: once the moment row is committed
+  // its onSuccess already refetched the timeline, so a failed photo upload must
+  // NOT read as "could not save" (that stranded the user on a saved-but-failed
+  // moment, and a re-tap created a duplicate). Create first, then upload.
   const handleSubmit = async (value: CaptureSubmit) => {
+    let moment: Moment;
     try {
-      const moment = await createMoment.mutateAsync({
+      moment = await createMoment.mutateAsync({
         childId: selected.id,
         milestoneId: entry?.id ?? null,
         customTitle: value.customTitle,
         occurredOn: value.occurredOn,
         note: value.note,
       });
-      await Promise.all(
-        photos.map((p, i) => uploadMomentPhoto(moment.id, `${moment.id}-${i}`, p, i)),
-      );
-      router.back();
     } catch (e) {
       Alert.alert('Could not save', e instanceof Error ? e.message : 'Please try again.');
+      return;
     }
+    const uploads = await Promise.allSettled(
+      photos.map((p, i) => uploadMomentPhoto(moment.id, `${moment.id}-${i}`, p, i)),
+    );
+    if (uploads.some((u) => u.status === 'rejected')) {
+      Alert.alert('Moment saved', "One or more photos didn't upload.");
+    }
+    router.back();
   };
 
   return (
