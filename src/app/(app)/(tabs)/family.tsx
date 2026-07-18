@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, View } from 'react-native';
-import { PrimaryButton } from '@/components/PrimaryButton';
+import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
 import { TextButton } from '@/components/TextButton';
 import { childAge, formatChildAge } from '@/features/children/age';
 import { ChildForm } from '@/features/children/ChildForm';
 import { useChildren, useCreateChild, useUpdateChild } from '@/features/children/queries';
+import { deleteAccount } from '@/features/family/deleteAccount';
+import { exportEverything } from '@/features/family/exportData';
+import { confirmDestructive, notify } from '@/lib/dialog';
 import { supabase } from '@/lib/supabase';
-import { color, font, space, type } from '@/theme/tokens';
+import { color, font, hairline, space, type } from '@/theme/tokens';
 
 // One source of truth for the footer form. Two independent booleans could both
 // be true (add + edit), stranding the user; a single mode makes every state
@@ -18,6 +20,7 @@ export default function FamilyScreen() {
   const createChild = useCreateChild();
   const updateChild = useUpdateChild();
   const [mode, setMode] = useState<FormMode>({ type: 'idle' });
+  const [exporting, setExporting] = useState(false);
 
   // Every transition clears stale mutation errors, so a failed save on one
   // child never surfaces on another child's untouched form.
@@ -35,11 +38,35 @@ export default function FamilyScreen() {
     setMode({ type: 'idle' });
   };
 
+  // Alert.alert is a silent no-op on react-native-web, so this confirm never
+  // appeared there and Sign out simply did nothing.
   const confirmSignOut = () =>
-    Alert.alert('Sign out?', 'You can sign back in any time.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign out', style: 'destructive', onPress: () => supabase.auth.signOut() },
-    ]);
+    confirmDestructive('Sign out?', 'You can sign back in any time.', 'Sign out', () => {
+      void supabase.auth.signOut();
+    });
+
+  const runExport = async () => {
+    setExporting(true);
+    try {
+      await exportEverything(new Date().toISOString());
+    } catch (e) {
+      notify('Could not export', e instanceof Error ? e.message : 'Please try again.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const confirmDelete = () =>
+    confirmDestructive(
+      'Delete your account?',
+      'Every moment and photo is erased for good. This cannot be undone.',
+      'Delete',
+      () => {
+        deleteAccount().catch((e) =>
+          notify('Could not delete', e instanceof Error ? e.message : 'Please try again.'),
+        );
+      },
+    );
 
   // Gate on load so a returning parent never flashes the empty-family add form
   // (and never loses typing when the real list arrives).
@@ -116,6 +143,17 @@ export default function FamilyScreen() {
           ) : (
             <TextButton label="Add another child" onPress={startAdding} />
           )}
+          <View style={styles.section}>
+            <Text style={styles.sectionHeading}>Your data</Text>
+            <Text style={styles.blurb}>
+              Take a copy whenever you like: every moment as JSON, with the photos beside it.
+            </Text>
+            <TextButton
+              label={exporting ? 'Preparing your export…' : 'Export everything'}
+              onPress={runExport}
+            />
+            <TextButton label="Delete my account" onPress={confirmDelete} tone="muted" />
+          </View>
           <View style={styles.signOut}>
             <TextButton label="Sign out" onPress={confirmSignOut} tone="muted" />
           </View>
@@ -152,5 +190,10 @@ const styles = StyleSheet.create({
   footer: { padding: space.lg, gap: space.lg },
   form: { gap: space.lg },
   formTitle: { fontFamily: font.display, fontSize: type.title, color: color.ink },
-  signOut: { marginTop: space.xl, borderTopWidth: 1, borderTopColor: color.rule, paddingTop: space.lg },
+  section: { gap: space.sm, paddingTop: space.xl, paddingBottom: space.lg, ...hairline },
+  // Karla, not Fraunces: settings are functional chrome, and the celebration
+  // voice on this screen belongs to the children's names.
+  sectionHeading: { fontFamily: font.medium, fontSize: type.title, color: color.ink },
+  blurb: { fontFamily: font.body, fontSize: type.label, color: color.inkMuted, lineHeight: 21 },
+  signOut: { marginTop: space.lg, paddingTop: space.lg },
 });
