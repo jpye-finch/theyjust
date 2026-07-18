@@ -66,8 +66,24 @@ select is(
   'an invited co-parent gets their inviter''s family back — no phantom fork');
 
 reset role;
-select is((select count(*) from public.families), 2::bigint,
-  'and the total family count is unchanged');
+-- Count only the families belonging to this test's own users. Every earlier
+-- count runs as `authenticated`, where RLS already scopes it; this one runs
+-- after `reset role`, which bypasses RLS and so used to see every family on the
+-- machine. An absolute count therefore failed on any developer database that
+-- already held real families, while passing in CI's empty one. Filtering by the
+-- test's user ids stays correct no matter what else is in the table (filtering
+-- by family NAME would not: 'Pye-Finch family' is a plausible real name here).
+select is(
+  (select count(*) from public.families f
+    where exists (
+      select 1 from public.family_members m
+      where m.family_id = f.id
+        and m.user_id in (
+          '00000000-0000-0000-0000-0000000000e1',
+          '00000000-0000-0000-0000-0000000000e2',
+          '00000000-0000-0000-0000-0000000000e3'))),
+  2::bigint,
+  'the three test users still share exactly two families — no phantom fork');
 
 -- Anonymous callers are rejected at the grant layer (fail closed): the
 -- migration revokes EXECUTE from anon, so the call never reaches the body.
