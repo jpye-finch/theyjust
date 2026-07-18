@@ -4,11 +4,9 @@ import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TextButton } from '@/components/TextButton';
 import { ageParts, formatAgeParts } from '@/features/children/age';
 import { useSelectedChild } from '@/features/children/selectedChild';
-import { CaptureForm, type CaptureSubmit } from '@/features/moments/CaptureForm';
 import {
   useDeleteMoment,
   useTimeline,
-  useUpdateMoment,
   type Moment,
 } from '@/features/moments/momentQueries';
 import { momentTitle } from '@/features/moments/momentText';
@@ -24,11 +22,9 @@ export default function MomentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { selected } = useSelectedChild();
   const { data: moments = [], isLoading } = useTimeline(selected?.id ?? null);
-  const updateMoment = useUpdateMoment(selected?.id ?? '');
   const deleteMoment = useDeleteMoment(selected?.id ?? '');
   const moment = moments.find((m) => m.id === id) as Moment | undefined;
 
-  const [editing, setEditing] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const shareRef = useRef<View>(null);
 
@@ -76,7 +72,10 @@ export default function MomentDetailScreen() {
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <View style={styles.headerRow}>
         <TextButton label="Back" onPress={() => router.back()} tone="muted" />
-        {!editing ? <TextButton label="Edit" onPress={() => setEditing(true)} /> : null}
+        <TextButton
+          label="Edit"
+          onPress={() => router.push({ pathname: '/capture', params: { momentId: moment.id } })}
+        />
       </View>
       {/* Same rule as the timeline card: the words lead, the plate follows. */}
       <Text style={styles.title}>{momentTitle(moment)}</Text>
@@ -85,50 +84,11 @@ export default function MomentDetailScreen() {
         <Image accessible={false} source={{ uri: photoUrl }} style={styles.photo} resizeMode="cover" />
       ) : null}
 
-      {editing ? (
-        // Capturing and editing are the same act, so they use the same form.
-        // Reusing it is what makes the title editable at all: the bespoke edit
-        // fields this replaced only ever offered the date and the note.
-        <View style={styles.edit}>
-          <CaptureForm
-            initialMilestoneId={moment.milestone_id}
-            initialCustomTitle={moment.custom_title ?? ''}
-            initialNote={moment.note ?? ''}
-            defaultOccurredOn={moment.occurred_on}
-            submitLabel="Save changes"
-            photoCount={moment.moment_photos.length}
-            onPickPhoto={() => notify('Not yet', 'Photos can only be added while capturing for now.')}
-            busy={updateMoment.isPending}
-            onSubmit={(value: CaptureSubmit) =>
-              updateMoment.mutate(
-                {
-                  id: moment.id,
-                  edit: {
-                    milestoneId: value.milestoneId,
-                    customTitle: value.customTitle,
-                    occurredOn: value.occurredOn,
-                    note: value.note,
-                  },
-                },
-                {
-                  onSuccess: () => setEditing(false),
-                  onError: (e) =>
-                    notify('Could not save', e instanceof Error ? e.message : 'Please try again.'),
-                },
-              )
-            }
-          />
-          <TextButton label="Cancel" onPress={() => setEditing(false)} tone="muted" />
-        </View>
-      ) : (
-        <>
-          {moment.note ? <Text style={styles.note}>{moment.note}</Text> : null}
-          <View style={styles.actions}>
-            <TextButton label="Share this memory" onPress={() => shareMomentCard(shareRef)} />
-            <TextButton label="Delete moment" onPress={confirmDelete} tone="muted" />
-          </View>
-        </>
-      )}
+      {moment.note ? <Text style={styles.note}>{moment.note}</Text> : null}
+      <View style={styles.actions}>
+        <TextButton label="Share this memory" onPress={() => shareMomentCard(shareRef)} />
+        <TextButton label="Delete moment" onPress={confirmDelete} tone="muted" />
+      </View>
       <View style={styles.offscreen} pointerEvents="none">
         <ShareCard ref={shareRef} title={momentTitle(moment)} ageLine={`at ${ageText}`} photoUrl={photoUrl} />
       </View>
@@ -146,7 +106,6 @@ const styles = StyleSheet.create({
   meta: { fontFamily: font.body, fontSize: type.label, color: color.inkMuted },
   note: { fontFamily: font.body, fontSize: type.body, color: color.ink, lineHeight: 24, marginTop: space.sm },
   actions: { marginTop: space.xl, borderTopWidth: 1, borderTopColor: color.rule, paddingTop: space.lg },
-  edit: { gap: space.lg, marginTop: space.sm },
   notFound: { fontFamily: font.body, fontSize: type.body, color: color.inkMuted, padding: space.xl },
   error: { fontFamily: font.medium, fontSize: type.label, color: color.damson },
   offscreen: { position: 'absolute', left: -10000, top: 0 },

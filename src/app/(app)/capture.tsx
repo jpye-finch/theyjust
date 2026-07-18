@@ -5,7 +5,12 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TextButton } from '@/components/TextButton';
 import { useSelectedChild } from '@/features/children/selectedChild';
 import { CaptureForm, type CaptureSubmit } from '@/features/moments/CaptureForm';
-import { useCreateMoment, type Moment } from '@/features/moments/momentQueries';
+import {
+  useCreateMoment,
+  useTimeline,
+  useUpdateMoment,
+  type Moment,
+} from '@/features/moments/momentQueries';
 import { pickPhoto, resizePhoto, uploadMomentPhoto, type PickedPhoto } from '@/features/moments/photoUpload';
 import { todayIso } from '@/features/moments/today';
 import { notify } from '@/lib/dialog';
@@ -13,17 +18,42 @@ import { color, font, space, type } from '@/theme/tokens';
 
 export default function CaptureScreen() {
   const router = useRouter();
-  const { milestoneId } = useLocalSearchParams<{ milestoneId?: string }>();
+  const { milestoneId, momentId } = useLocalSearchParams<{
+    milestoneId?: string;
+    momentId?: string;
+  }>();
   const { selected } = useSelectedChild();
   const qc = useQueryClient();
   const createMoment = useCreateMoment(selected?.id ?? '');
+  const updateMoment = useUpdateMoment(selected?.id ?? '');
+  const { data: moments, isLoading } = useTimeline(selected?.id ?? null);
   const [photos, setPhotos] = useState<PickedPhoto[]>([]);
+
+  // Capturing and editing are the same act, so they are the same screen. The
+  // moment comes from the timeline cache the previous screen already loaded.
+  const editing = momentId ? moments?.find((m) => m.id === momentId) : undefined;
 
   if (!selected) {
     return (
       <View style={styles.screen}>
         <Text style={styles.title}>Add a child first</Text>
         <TextButton label="Go to Family" onPress={() => router.replace('/family')} />
+      </View>
+    );
+  }
+
+  // A cold deep-link to ?momentId= reaches here before the timeline has loaded.
+  // Without this the form would fall through to its capture defaults and quietly
+  // create a SECOND moment instead of editing the one that was asked for.
+  if (momentId && !editing) {
+    return (
+      <View style={styles.screen}>
+        {isLoading ? null : (
+          <>
+            <Text style={styles.title}>This moment is no longer here.</Text>
+            <TextButton label="Back to Timeline" onPress={() => router.replace('/')} />
+          </>
+        )}
       </View>
     );
   }
@@ -40,6 +70,26 @@ export default function CaptureScreen() {
   // NOT read as "could not save" (that stranded the user on a saved-but-failed
   // moment, and a re-tap created a duplicate). Create first, then upload.
   const handleSubmit = async (value: CaptureSubmit) => {
+    if (editing) {
+      updateMoment.mutate(
+        {
+          id: editing.id,
+          edit: {
+            milestoneId: value.milestoneId,
+            customTitle: value.customTitle,
+            occurredOn: value.occurredOn,
+            note: value.note,
+          },
+        },
+        {
+          onSuccess: () => router.back(),
+          onError: (e) =>
+            notify('Could not save', e instanceof Error ? e.message : 'Please try again.'),
+        },
+      );
+      return;
+    }
+
     let moment: Moment;
     try {
       moment = await createMoment.mutateAsync({
@@ -72,16 +122,23 @@ export default function CaptureScreen() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <View style={styles.headerRow}>
-        <Text style={styles.screenTitle}>Capture a moment</Text>
+        <Text style={styles.screenTitle}>{editing ? 'Edit this moment' : 'Capture a moment'}</Text>
         <TextButton label="Cancel" onPress={() => router.back()} tone="muted" />
       </View>
       <CaptureForm
-        initialMilestoneId={milestoneId ?? null}
-        defaultOccurredOn={todayIso()}
-        photoCount={photos.length}
-        onPickPhoto={handlePick}
+        initialMilestoneId={editing ? editing.milestone_id : (milestoneId ?? null)}
+        initialCustomTitle={editing?.custom_title ?? ''}
+        initialNote={editing?.note ?? ''}
+        defaultOccurredOn={editing ? editing.occurred_on : todayIso()}
+        submitLabel={editing ? 'Save changes' : 'Save moment'}
+        photoCount={editing ? editing.moment_photos.length : photos.length}
+        onPickPhoto={
+          editing
+            ? () => notify('Not yet', 'Photos can only be added while capturing for now.')
+            : handlePick
+        }
         onSubmit={handleSubmit}
-        busy={createMoment.isPending}
+        busy={createMoment.isPending || updateMoment.isPending}
       />
     </ScrollView>
   );
