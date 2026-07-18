@@ -1,3 +1,4 @@
+import Feather from '@expo/vector-icons/Feather';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { DateField } from '@/components/DateField';
@@ -97,6 +98,12 @@ export function CaptureForm({
         multiline
       />
       <Pressable style={styles.photoAdd} onPress={onPickPhoto} accessibilityRole="button">
+        {/* The glyph carries the state: an invitation before, a confirmation after. */}
+        <Feather
+          name={photoCount === 0 ? 'camera' : 'check'}
+          size={16}
+          color={color.damson}
+        />
         <Text style={styles.photoAddText}>
           {photoCount === 0
             ? 'Add a photo'
@@ -130,12 +137,15 @@ const styles = StyleSheet.create({
   customBlock: { gap: space.xs },
   presetTitle: { fontFamily: font.displayBold, fontSize: type.display, color: color.ink, letterSpacing: -0.3 },
   photoAdd: {
+    flexDirection: 'row',
+    gap: space.sm,
     borderWidth: 1,
     borderColor: color.rule,
     borderRadius: radius.md,
     borderStyle: 'dashed',
     paddingVertical: space.lg,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   photoAddText: { fontFamily: font.medium, fontSize: type.label, color: color.damson },
   error: { fontFamily: font.medium, fontSize: type.label, color: color.damson },

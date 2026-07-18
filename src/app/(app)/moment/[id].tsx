@@ -80,11 +80,12 @@ export default function MomentDetailScreen() {
         <TextButton label="Back" onPress={() => router.back()} tone="muted" />
         {!editing ? <TextButton label="Edit" onPress={() => setEditing(true)} /> : null}
       </View>
+      {/* Same rule as the timeline card: the words lead, the plate follows. */}
+      <Text style={styles.title}>{momentTitle(moment)}</Text>
+      <Text style={styles.meta}>{`${formatDisplayDate(moment.occurred_on)} · ${ageText}`}</Text>
       {photoUrl ? (
         <Image accessible={false} source={{ uri: photoUrl }} style={styles.photo} resizeMode="cover" />
       ) : null}
-      <Text style={styles.title}>{momentTitle(moment)}</Text>
-      <Text style={styles.meta}>{`${formatDisplayDate(moment.occurred_on)} · ${ageText}`}</Text>
 
       {editing ? (
         <EditFields

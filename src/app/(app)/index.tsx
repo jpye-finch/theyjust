@@ -1,3 +1,4 @@
+import Feather from '@expo/vector-icons/Feather';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -76,7 +77,9 @@ export default function TimelineScreen() {
             accessibilityLabel="Capture a moment"
             style={styles.add}
           >
-            <Text style={styles.addPlus}>+</Text>
+            {/* A vector glyph centres in its own box; a text "+" sits on the
+                maths axis and always reads high inside a circle. */}
+            <Feather name="plus" size={22} color={color.onDamson} />
           </Pressable>
         </View>
       }
@@ -120,7 +123,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addPlus: { fontFamily: font.body, fontSize: 28, color: color.onDamson, lineHeight: 32 },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space.xl, gap: space.md, backgroundColor: color.paper },
   emptyTitle: { fontFamily: font.display, fontSize: 30, color: color.ink, textAlign: 'center', letterSpacing: -0.3 },
   emptyBody: { fontFamily: font.body, fontSize: type.body, color: color.inkMuted, textAlign: 'center', marginBottom: space.sm },

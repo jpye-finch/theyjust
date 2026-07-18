@@ -1,3 +1,4 @@
+import Feather from '@expo/vector-icons/Feather';
 import { useMemo, useState } from 'react';
 import { Modal, Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
 import { Field } from '@/components/Field';
@@ -60,6 +61,8 @@ export function MilestonePicker({ visible, onSelect, onClose }: Props) {
               accessibilityLabel={item.title}
             >
               <Text style={styles.rowTitle}>{item.title}</Text>
+              {/* Signals the row acts, rather than reading as a static list. */}
+              <Feather name="chevron-right" size={18} color={color.inkMuted} />
             </Pressable>
           )}
           ListEmptyComponent={<Text style={styles.empty}>No milestones match that.</Text>}
@@ -78,12 +81,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.lg,
     paddingTop: space.xl,
   },
-  title: {
-    fontFamily: font.displayBold,
-    fontSize: type.display,
-    color: color.ink,
-    letterSpacing: -0.3,
-  },
+  // Same toolbar treatment as the capture screen it opens from: quiet Karla
+  // chrome paired with Cancel, so the two sheets share one vocabulary.
+  title: { fontFamily: font.medium, fontSize: type.label, color: color.inkMuted },
   search: { paddingHorizontal: space.lg, paddingBottom: space.md },
   // Book-chapter headings, matching the Milestones screen.
   sectionHeader: {
@@ -94,8 +94,16 @@ const styles = StyleSheet.create({
     paddingTop: space.lg,
     paddingBottom: space.sm,
   },
-  row: { paddingHorizontal: space.lg, paddingVertical: space.md, ...hairline },
-  rowTitle: { fontFamily: font.medium, fontSize: type.body, color: color.ink },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: space.md,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    ...hairline,
+  },
+  rowTitle: { fontFamily: font.medium, fontSize: type.body, color: color.ink, flex: 1 },
   empty: {
     fontFamily: font.body,
     fontSize: type.body,

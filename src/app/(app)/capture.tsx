@@ -83,7 +83,7 @@ export default function CaptureScreen() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <View style={styles.headerRow}>
-        <Text style={styles.title}>Capture a moment</Text>
+        <Text style={styles.screenTitle}>Capture a moment</Text>
         <TextButton label="Cancel" onPress={() => router.back()} tone="muted" />
       </View>
       <CaptureForm
@@ -103,5 +103,10 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: color.paper },
   content: { padding: space.lg, gap: space.lg },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  // Screen chrome is functional, so it is Karla and it recedes: the celebration
+  // line below is the only thing on this page allowed to be the hero. Fraunces
+  // here made the two headings the same size and voice, and they fought.
+  screenTitle: { fontFamily: font.medium, fontSize: type.label, color: color.inkMuted },
+  // Fraunces stays for the empty state, which IS the page's own voice.
   title: { fontFamily: font.displayBold, fontSize: type.display, color: color.ink, letterSpacing: -0.3 },
 });
