@@ -399,8 +399,24 @@ Timeline fetch (moments + their photos for a child, newest first), and create/up
 Create `src/features/moments/__tests__/momentQueries.test.ts`:
 
 ```ts
-import { createMoment, deleteMoment, fetchTimeline, updateMoment } from '../momentQueries';
+import { createElement, type ReactNode } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { renderHook, waitFor } from '@testing-library/react-native';
+import {
+  createMoment,
+  deleteMoment,
+  fetchTimeline,
+  updateMoment,
+  useCreateMoment,
+  useDeleteMoment,
+  useUpdateMoment,
+} from '../momentQueries';
 import { supabase } from '../../../lib/supabase';
+
+function withClient(client: QueryClient) {
+  return ({ children }: { children: ReactNode }) =>
+    createElement(QueryClientProvider, { client }, children);
+}
 
 jest.mock('../../../lib/supabase', () => ({
   supabase: { from: jest.fn(), auth: { getSession: jest.fn() } },
@@ -482,6 +498,63 @@ describe('deleteMoment', () => {
     await deleteMoment('m1');
     expect(mockedFrom).toHaveBeenCalledWith('moments');
     expect(eq).toHaveBeenCalledWith('id', 'm1');
+  });
+});
+
+// A moment change feeds two different query keys: the Timeline feed
+// (['timeline']) and the Milestones "achieved" state (['moments'] via
+// useMomentSummaries). Every mutation must invalidate BOTH or the Milestones
+// screen goes stale (a logged milestone stays tappable → duplicate).
+describe('mutation hooks invalidate both moment views', () => {
+  it('useCreateMoment invalidates timeline and moments', async () => {
+    mockedGetSession.mockResolvedValue({ data: { session: { user: { id: 'u1' } } }, error: null });
+    const single = jest.fn().mockResolvedValue({ data: { id: 'm1' }, error: null });
+    mockedFrom.mockReturnValue({ insert: () => ({ select: () => ({ single }) }) });
+    const client = new QueryClient();
+    const invalidate = jest.spyOn(client, 'invalidateQueries');
+
+    const { result } = await renderHook(() => useCreateMoment('child-1'), { wrapper: withClient(client) });
+    await result.current.mutateAsync({
+      childId: 'child-1',
+      milestoneId: null,
+      customTitle: 'First haircut',
+      occurredOn: '2026-01-01',
+      note: '',
+    });
+
+    await waitFor(() => {
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: ['timeline', 'child-1'] });
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: ['moments', 'child-1'] });
+    });
+  });
+
+  it('useUpdateMoment invalidates timeline and moments', async () => {
+    const single = jest.fn().mockResolvedValue({ data: { id: 'm1' }, error: null });
+    mockedFrom.mockReturnValue({ update: () => ({ eq: () => ({ select: () => ({ single }) }) }) });
+    const client = new QueryClient();
+    const invalidate = jest.spyOn(client, 'invalidateQueries');
+
+    const { result } = await renderHook(() => useUpdateMoment('child-1'), { wrapper: withClient(client) });
+    await result.current.mutateAsync({ id: 'm1', edit: { occurredOn: '2026-01-02', note: 'x' } });
+
+    await waitFor(() => {
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: ['timeline', 'child-1'] });
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: ['moments', 'child-1'] });
+    });
+  });
+
+  it('useDeleteMoment invalidates timeline and moments', async () => {
+    mockedFrom.mockReturnValue({ delete: () => ({ eq: jest.fn().mockResolvedValue({ error: null }) }) });
+    const client = new QueryClient();
+    const invalidate = jest.spyOn(client, 'invalidateQueries');
+
+    const { result } = await renderHook(() => useDeleteMoment('child-1'), { wrapper: withClient(client) });
+    await result.current.mutateAsync('m1');
+
+    await waitFor(() => {
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: ['timeline', 'child-1'] });
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: ['moments', 'child-1'] });
+    });
   });
 });
 ```
@@ -597,7 +670,13 @@ export function useCreateMoment(childId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: createMoment,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['timeline', childId] }),
+    // Refresh the Timeline feed AND the Milestones "achieved" state — they read
+    // different keys (['timeline'] vs ['moments'] via useMomentSummaries) off the
+    // same moments table, so a change must invalidate both.
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['timeline', childId] });
+      qc.invalidateQueries({ queryKey: ['moments', childId] });
+    },
   });
 }
 
@@ -605,7 +684,10 @@ export function useUpdateMoment(childId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, edit }: { id: string; edit: MomentEdit }) => updateMoment(id, edit),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['timeline', childId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['timeline', childId] });
+      qc.invalidateQueries({ queryKey: ['moments', childId] });
+    },
   });
 }
 
@@ -613,7 +695,10 @@ export function useDeleteMoment(childId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: deleteMoment,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['timeline', childId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['timeline', childId] });
+      qc.invalidateQueries({ queryKey: ['moments', childId] });
+    },
   });
 }
 ```
