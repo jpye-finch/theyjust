@@ -1,6 +1,6 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TextButton } from '@/components/TextButton';
 import { useSelectedChild } from '@/features/children/selectedChild';
 import { CaptureForm, type CaptureSubmit } from '@/features/moments/CaptureForm';
@@ -8,6 +8,7 @@ import { CATALOGUE, celebrationText } from '@/features/milestones/catalogue';
 import { useCreateMoment, type Moment } from '@/features/moments/momentQueries';
 import { pickPhoto, resizePhoto, uploadMomentPhoto, type PickedPhoto } from '@/features/moments/photoUpload';
 import { todayIso } from '@/features/moments/today';
+import { notify } from '@/lib/dialog';
 import { color, font, space, type } from '@/theme/tokens';
 
 export default function CaptureScreen() {
@@ -62,14 +63,14 @@ export default function CaptureScreen() {
         note: value.note,
       });
     } catch (e) {
-      Alert.alert('Could not save', e instanceof Error ? e.message : 'Please try again.');
+      notify('Could not save', e instanceof Error ? e.message : 'Please try again.');
       return;
     }
     const uploads = await Promise.allSettled(
       photos.map((p, i) => uploadMomentPhoto(moment.id, `${moment.id}-${i}`, p, i)),
     );
     if (uploads.some((u) => u.status === 'rejected')) {
-      Alert.alert('Moment saved', "One or more photos didn't upload.");
+      notify('Moment saved', "One or more photos didn't upload.");
     }
     router.back();
   };

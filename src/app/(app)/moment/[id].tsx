@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Field } from '@/components/Field';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { TextButton } from '@/components/TextButton';
@@ -17,6 +17,7 @@ import { signedPhotoUrl } from '@/features/moments/photoUpload';
 import { ShareCard } from '@/features/moments/ShareCard';
 import { shareMomentCard } from '@/features/moments/shareMoment';
 import { isRealDate } from '@/lib/date';
+import { confirmDestructive, notify } from '@/lib/dialog';
 import { color, font, radius, space, type } from '@/theme/tokens';
 
 export default function MomentDetailScreen() {
@@ -64,19 +65,13 @@ export default function MomentDetailScreen() {
   const ageText = formatAgeParts(ageParts(selected.date_of_birth, moment.occurred_on));
 
   const confirmDelete = () =>
-    Alert.alert('Delete this moment?', 'This cannot be undone.', [
-      { text: 'Keep it', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () =>
-          deleteMoment.mutate(moment.id, {
-            onSuccess: () => router.replace('/'),
-            onError: (e) =>
-              Alert.alert('Could not delete', e instanceof Error ? e.message : 'Please try again.'),
-          }),
-      },
-    ]);
+    confirmDestructive('Delete this moment?', 'This cannot be undone.', 'Delete', () =>
+      deleteMoment.mutate(moment.id, {
+        onSuccess: () => router.replace('/'),
+        onError: (e) =>
+          notify('Could not delete', e instanceof Error ? e.message : 'Please try again.'),
+      }),
+    );
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -101,7 +96,7 @@ export default function MomentDetailScreen() {
               {
                 onSuccess: () => setEditing(false),
                 onError: (e) =>
-                  Alert.alert('Could not save', e instanceof Error ? e.message : 'Please try again.'),
+                  notify('Could not save', e instanceof Error ? e.message : 'Please try again.'),
               },
             )
           }
