@@ -1460,8 +1460,8 @@ The capture modal owns the picked-photo state, the create mutation, and (after t
 - [ ] **Step 1: Create `src/app/(app)/capture.tsx`**
 
 ```tsx
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TextButton } from '@/components/TextButton';
 import { useSelectedChild } from '@/features/children/selectedChild';
@@ -1478,6 +1478,17 @@ export default function CaptureScreen() {
   const { selected } = useSelectedChild();
   const createMoment = useCreateMoment(selected?.id ?? '');
   const [photos, setPhotos] = useState<PickedPhoto[]>([]);
+  const [formKey, setFormKey] = useState(0);
+
+  // capture is a tab-hidden screen, so it stays mounted after the first visit.
+  // Re-seed the form and drop picked photos each time it regains focus, or the
+  // previous capture's title/date/note/photos would linger into the next one.
+  useFocusEffect(
+    useCallback(() => {
+      setFormKey((k) => k + 1);
+      setPhotos([]);
+    }, []),
+  );
 
   const entry = milestoneId ? CATALOGUE.find((e) => e.id === milestoneId) : undefined;
   const presetTitle = entry ? celebrationText(entry) : null;
@@ -1532,6 +1543,7 @@ export default function CaptureScreen() {
         <TextButton label="Cancel" onPress={() => router.back()} tone="muted" />
       </View>
       <CaptureForm
+        key={formKey}
         presetTitle={presetTitle}
         defaultOccurredOn={todayIso()}
         photoCount={photos.length}
@@ -2047,6 +2059,15 @@ npx expo export --platform web 2>&1 | tail -3 && rm -rf dist
 Expected: exit 0.
 
 - [ ] **Step 3: Report DONE.** The coordinator performs runtime verification in the browser against local Supabase (expo-image-picker uses the browser file input on web, so the full photo path is exercisable): sign in → add a child → Timeline empty state → capture a custom moment with a photo (pick a local image, it resizes + uploads) → it appears in the Timeline with the photo → open the moment, edit the note, save → capture a milestone moment from the Milestones tab (tap an unachieved row) → confirm it shows as achieved with the damson stamp on Milestones → delete a moment. Watch the console for errors; confirm the photo actually round-trips through Storage (signed URL renders).
+
+- [ ] **Runtime findings (browser pass against local Supabase, 2026-07-18)**
+
+Verified green: sign-up → app; add child (create_family) with correct age; Timeline empty state renders with **no infinite loop** (the `NO_MOMENTS` fix); custom-moment capture appears in the Timeline (title · date·age · note · "Logged by you"); default date is today (`todayIso`); moment detail edit-note persists; cold-reload deep-link to a moment loads without a false "no longer here" flash (the `isLoading` guard); milestone-triggered capture shows the celebration title and stamps the row achieved (damson on damsonSoft) with "At {age}"; achieved rows are inert (no "Log" a11y label). tsc + 125 jest + 52 pgTAP + web export all pass.
+
+Two bugs found and their disposition:
+- **FIXED in this task — capture form state went stale across captures.** `capture` is a tab-hidden screen (`href: null`), so React Navigation keeps it mounted after the first visit and `CaptureForm`'s `note`/`customTitle`/`occurredOn` (and picked photos) lingered into the next capture (cross-platform, not web-only). Fixed by re-seeding on focus: `useFocusEffect` bumps a `key` on `CaptureForm` and clears `photos` (Task 9 block updated; verified in-browser that a typed-then-cancelled note no longer persists into the next open).
+- **DEFERRED to Plan 4 pre-launch — `Alert.alert` is a no-op on react-native-web.** The delete confirm and the create/edit/delete/partial-photo error alerts show nothing on web (they work fully on native). This is app-wide platform parity (all `Alert` usage across Plans 1-3), best solved once with a cross-platform confirm/toast primitive; it belongs to the pre-launch hardening checklist, not this task.
+- **Photo upload** was exercised as far as the web file-input allows; expo-image-picker's web picker did not accept a synthesised file, and `expo-file-system` has its own web constraints. The photo pipeline is covered by `photoPath`/`RESIZE` unit tests and 52 storage pgTAP assertions (read/write/update/delete + cross-family deny), and `uploadMomentPhoto` is verified against the native path; full photo round-trip is a device-runtime check.
 
 ---
 
