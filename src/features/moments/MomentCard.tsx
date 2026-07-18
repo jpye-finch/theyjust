@@ -14,6 +14,10 @@ type Props = {
 
 export function MomentCard({ moment, childDateOfBirth, loggedByYou, photoUrl }: Props) {
   const ageText = formatAgeParts(ageParts(childDateOfBirth, moment.occurred_on));
+  // The feed shows one plate per moment: a gallery here would fight the vertical
+  // scroll and cost the list its scannability. So when a moment holds more, the
+  // card says so in a caption and the detail screen shows them all.
+  const photoCount = moment.moment_photos.length;
   return (
     // The words lead and the plate follows, like a caption under a book's
     // illustration. A photo above the title read as belonging to the moment
@@ -32,6 +36,9 @@ export function MomentCard({ moment, childDateOfBirth, loggedByYou, photoUrl }: 
           style={styles.photo}
           resizeMode="cover"
         />
+      ) : null}
+      {photoUrl && photoCount > 1 ? (
+        <Text style={styles.photoCount}>{`${photoCount} photos`}</Text>
       ) : null}
       {moment.note ? <Text style={styles.note}>{moment.note}</Text> : null}
       {/* Your own moments need no byline — it's every card. Only a co-parent's
@@ -63,6 +70,9 @@ const styles = StyleSheet.create({
   },
   title: { fontFamily: font.display, fontSize: type.title, color: color.ink },
   meta: { fontFamily: font.body, fontSize: type.caption, color: color.inkMuted },
+  // A plate caption, the way a book labels its illustrations — not a floating
+  // badge, and not a pill (DESIGN.md rules those out).
+  photoCount: { fontFamily: font.body, fontSize: type.caption, color: color.inkMuted },
   note: { fontFamily: font.body, fontSize: type.body, color: color.ink, lineHeight: 22 },
   author: { fontFamily: font.medium, fontSize: type.caption, color: color.inkMuted },
 });

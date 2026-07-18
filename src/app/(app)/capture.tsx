@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TextButton } from '@/components/TextButton';
 import { useSelectedChild } from '@/features/children/selectedChild';
@@ -13,40 +13,13 @@ import {
   type Moment,
   type MomentPhoto,
 } from '@/features/moments/momentQueries';
-import {
-  pickPhoto,
-  resizePhoto,
-  signedPhotoUrl,
-  uploadMomentPhoto,
-  type PickedPhoto,
-} from '@/features/moments/photoUpload';
+import { pickPhoto, resizePhoto, uploadMomentPhoto, type PickedPhoto } from '@/features/moments/photoUpload';
 import { todayIso } from '@/features/moments/today';
+import { byPosition, useSignedUrls } from '@/features/moments/useSignedUrls';
 import { confirmDestructive, notify } from '@/lib/dialog';
 import { color, font, space, type } from '@/theme/tokens';
 
 const NO_PHOTOS: MomentPhoto[] = [];
-
-// Keyed on the photos' ids and paths, not the array itself: react-query hands
-// back a fresh array on every refetch, and depending on that identity spun this
-// effect's setState in a loop (the same trap the Timeline hit on its empty state).
-function useSignedUrls(photos: MomentPhoto[]): Record<string, string | null> {
-  const [urls, setUrls] = useState<Record<string, string | null>>({});
-  const key = photos.map((p) => `${p.id}:${p.storage_path}`).join('|');
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const entries = await Promise.all(
-        photos.map(async (p) => [p.id, await signedPhotoUrl(p.storage_path)] as const),
-      );
-      if (!cancelled) setUrls(Object.fromEntries(entries));
-    })();
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
-  return urls;
-}
 
 export default function CaptureScreen() {
   const router = useRouter();
@@ -64,9 +37,7 @@ export default function CaptureScreen() {
   // Capturing and editing are the same act, so they are the same screen. The
   // moment comes from the timeline cache the previous screen already loaded.
   const editing = momentId ? moments?.find((m) => m.id === momentId) : undefined;
-  const existing = editing
-    ? [...editing.moment_photos].sort((a, b) => a.position - b.position)
-    : NO_PHOTOS;
+  const existing = editing ? byPosition(editing.moment_photos) : NO_PHOTOS;
   const photoUrls = useSignedUrls(existing);
 
   if (!selected) {
