@@ -98,7 +98,13 @@ export function useCreateMoment(childId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: createMoment,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['timeline', childId] }),
+    // Refresh the Timeline feed AND the Milestones "achieved" state — they read
+    // different keys (['timeline'] vs ['moments'] via useMomentSummaries) off the
+    // same moments table, so a change must invalidate both.
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['timeline', childId] });
+      qc.invalidateQueries({ queryKey: ['moments', childId] });
+    },
   });
 }
 
@@ -106,7 +112,10 @@ export function useUpdateMoment(childId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, edit }: { id: string; edit: MomentEdit }) => updateMoment(id, edit),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['timeline', childId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['timeline', childId] });
+      qc.invalidateQueries({ queryKey: ['moments', childId] });
+    },
   });
 }
 
@@ -114,6 +123,9 @@ export function useDeleteMoment(childId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: deleteMoment,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['timeline', childId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['timeline', childId] });
+      qc.invalidateQueries({ queryKey: ['moments', childId] });
+    },
   });
 }
