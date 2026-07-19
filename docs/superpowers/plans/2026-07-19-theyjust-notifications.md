@@ -306,7 +306,7 @@ export const AGE_BODY = 'Anything you’d like to remember?';
 npm test -- notificationCopy && rm -f .expo/types/router.d.ts && npx tsc --noEmit
 ```
 
-Expected: 9 passed; tsc exit 0.
+Expected: 8 passed; tsc exit 0.
 
 - [ ] **Step 5: Commit**
 
