@@ -641,9 +641,11 @@ git commit -m "feat(auth): require email confirmation, matching production"
 **Files:**
 - Modify: `app.json`
 
-- [ ] **Step 1: Confirm the identifier with the account holder before writing it.** The convention is reverse-DNS on a domain you control: `com.theyjust.app` if `theyjust.com` is registered, otherwise `uk.co.pyefinch.theyjust`. Ask; do not choose unilaterally.
+- [x] **Step 1: Confirmed — `com.theyjust.app`.** Settled 2026-07-19: the account holder owns `theyjust.com`, so reverse-DNS on a domain they control gives `com.theyjust.app`, and it is valid on both platforms.
 
-- [ ] **Step 2: Add the identifiers.** In `app.json`, change:
+  Worth recording why the alternative was rejected, since it is a trap: `uk.co.pye-finch.theyjust` is a legal iOS bundle identifier but an **illegal Android package name** — Android package names cannot contain hyphens. Taking that route would have meant two different identifiers for the same app.
+
+- [x] **Step 2: Add the identifiers.** Done — `ios.bundleIdentifier` and `android.package` are both `com.theyjust.app`. In `app.json`, change:
 
 ```json
     "ios": {
@@ -657,10 +659,11 @@ to (substituting the confirmed identifier):
     "ios": {
       "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.theyjust.app",
-      "supportsTablet": false,
-      "usesAppleSignIn": true
+      "supportsTablet": false
     },
 ```
+
+`usesAppleSignIn` is deliberately **not** set here: it is an entitlement, and a build fails if it is declared before the capability is enabled on the App ID in the developer portal. It belongs in Task 6, where Sign in with Apple is actually implemented.
 
 and in the `android` block, add the package key alongside the existing `adaptiveIcon`:
 
@@ -668,7 +671,7 @@ and in the `android` block, add the package key alongside the existing `adaptive
       "package": "com.theyjust.app",
 ```
 
-- [ ] **Step 3: Verify the config resolves**
+- [x] **Step 3: Verify the config resolves** — `npx expo config --type public` reports `bundleIdentifier: 'com.theyjust.app'` and `package: 'com.theyjust.app'`.
 
 ```bash
 npx expo config --type public > /dev/null && echo "config OK"
