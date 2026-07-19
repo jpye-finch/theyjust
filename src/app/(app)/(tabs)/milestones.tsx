@@ -56,6 +56,15 @@ export default function MilestonesScreen() {
             onAddChild={() => router.push('/family')}
             size="hero"
           />
+          {/* Said once, framing the whole list, rather than repeated under every
+              row a child has passed — which for an older child meant the same
+              worried sentence a dozen times down the screen. */}
+          <Text style={styles.note}>
+            These ranges come from WHO, CDC and NHS guidance, and every one is drawn from at least
+            two of them. They describe when something usually appears, not when it should: children
+            arrive in their own order, and some skip a milestone altogether. If anything is worrying
+            you, your child’s doctor or health visitor is the right person to ask.
+          </Text>
         </View>
       }
       renderSectionHeader={({ section }) => (
@@ -72,11 +81,7 @@ export default function MilestonesScreen() {
           accessibilityRole={achieved[item.id] ? undefined : 'button'}
           accessibilityLabel={achieved[item.id] ? item.title : `Log ${item.title}`}
         >
-          <MilestoneRow
-            entry={item}
-            comparisonMonths={age.comparisonMonths}
-            achievedAgeText={achieved[item.id] ?? null}
-          />
+          <MilestoneRow entry={item} achievedAgeText={achieved[item.id] ?? null} />
         </Pressable>
       )}
     />
@@ -109,6 +114,18 @@ const styles = StyleSheet.create({
   },
   emptyButton: { alignSelf: 'stretch', paddingHorizontal: space.xl },
   header: { paddingHorizontal: space.lg, paddingTop: space.xl, paddingBottom: space.md, gap: space.xs },
+  // Karla and muted: this is the quiet voice that frames the list, not part of
+  // the celebration. A hairline separates it from the first category.
+  note: {
+    fontFamily: font.body,
+    fontSize: type.label,
+    color: color.inkMuted,
+    lineHeight: 22,
+    marginTop: space.md,
+    paddingBottom: space.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: color.rule,
+  },
   // A hairline-underline selector (echoes the Field focus motif), not pill chips.
   // Book-chapter headings, not tracked-uppercase SaaS kickers.
   sectionHeader: {

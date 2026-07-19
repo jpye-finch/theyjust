@@ -1,35 +1,29 @@
 import { render, screen } from '@testing-library/react-native';
 import { CATALOGUE } from '../catalogue';
 import { MilestoneRow } from '../MilestoneRow';
-import { SIGNPOST_TEXT } from '../rangePhrase';
 
 const firstSteps = CATALOGUE.find((e) => e.id === 'first_steps')!;
-const crawled = CATALOGUE.find((e) => e.id === 'crawled')!;
 
 describe('MilestoneRow', () => {
   it('renders an achieved milestone with a tick and age', async () => {
-    await render(<MilestoneRow entry={firstSteps} comparisonMonths={14} achievedAgeText="13 months" />);
+    await render(<MilestoneRow entry={firstSteps} achievedAgeText="13 months" />);
     expect(screen.getByText('✓ First steps')).toBeTruthy();
     expect(screen.getByText('At 13 months')).toBeTruthy();
   });
 
   it('renders the typical range when unachieved', async () => {
-    await render(<MilestoneRow entry={firstSteps} comparisonMonths={5} achievedAgeText={null} />);
+    await render(<MilestoneRow entry={firstSteps} achievedAgeText={null} />);
     expect(screen.getByText('First steps')).toBeTruthy();
-    // 9–18 is the researched, sourced range from Task 5 (WHO 5th percentile).
+    // 9–18 is the researched, sourced range from Plan 2 (WHO 5th percentile).
     expect(screen.getByText('Typically emerges between 9 and 18 months')).toBeTruthy();
-    expect(screen.queryByText(SIGNPOST_TEXT)).toBeNull();
   });
 
-  it('renders the gentle signpost well past the window', async () => {
-    await render(<MilestoneRow entry={firstSteps} comparisonMonths={21} achievedAgeText={null} />);
-    expect(screen.getByText(SIGNPOST_TEXT)).toBeTruthy();
-  });
-
-  it('never signposts a skippable milestone, even well past its window', async () => {
-    // crawled is skippable (many children never crawl) — the row must not
-    // surface the signpost that would false-alarm those families.
-    await render(<MilestoneRow entry={crawled} comparisonMonths={24} achievedAgeText={null} />);
-    expect(screen.queryByText(SIGNPOST_TEXT)).toBeNull();
+  it('says the same thing whatever the child’s age', async () => {
+    // A row used to grow a worried sentence once the child passed its window.
+    // That guidance now sits once at the top of the screen, so a row reads the
+    // same at five months as at five years — it is a description, not a verdict.
+    await render(<MilestoneRow entry={firstSteps} achievedAgeText={null} />);
+    expect(screen.queryByText(/doctor or health visitor/)).toBeNull();
+    expect(screen.queryByText(/Every child is different/)).toBeNull();
   });
 });

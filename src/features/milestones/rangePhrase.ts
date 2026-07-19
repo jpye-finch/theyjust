@@ -1,21 +1,17 @@
 // Spec §5 safety rules, encoded once:
 //  - Achieved milestones are celebrated regardless of timing.
 //  - Ranges are always "typically emerges…", never deadlines, never "behind".
-//  - A calm signpost appears only when the child's comparison age is more than
-//    SIGNPOST_GRACE_MONTHS past the outer bound. We are not a screening tool.
+//
+// There was once a per-row signpost that appeared when a child passed a range.
+// For an older child it fired on many rows at once, so the screen filled with
+// the same worried sentence — the opposite of reassurance. That guidance now
+// lives once, at the top of the Milestones screen, where it frames the whole
+// list instead of shadowing individual rows. We are not a screening tool.
 import type { CatalogueEntry } from './catalogue';
-
-// Reads naturally in the US, UK, and Europe: "doctor" covers pediatrician /
-// GP / Kinderarzt, and "health visitor" names the UK's usual first port of call.
-export const SIGNPOST_TEXT =
-  'Every child is different. If you have questions, your child’s doctor or health visitor is the right person to ask.';
-
-const SIGNPOST_GRACE_MONTHS = 2;
 
 export type MilestoneStatus =
   | { kind: 'achieved'; ageText: string }
-  | { kind: 'range'; text: string }
-  | { kind: 'range-with-signpost'; text: string; signpost: string };
+  | { kind: 'range'; text: string };
 
 /** 24 → "2 years", 30 → "2½ years". Bounds ≥24 are validated to be ÷6. */
 function yearsText(months: number): string {
@@ -40,18 +36,11 @@ export function rangeText(startMonths: number, endMonths: number): string {
 }
 
 export function milestoneStatus(
-  entry: Pick<CatalogueEntry, 'typicalStartMonths' | 'typicalEndMonths' | 'skippable'>,
-  comparisonMonths: number,
+  entry: Pick<CatalogueEntry, 'typicalStartMonths' | 'typicalEndMonths'>,
   achievedAgeText: string | null,
 ): MilestoneStatus {
   if (achievedAgeText !== null) {
     return { kind: 'achieved', ageText: achievedAgeText };
   }
-  const text = rangeText(entry.typicalStartMonths, entry.typicalEndMonths);
-  // Skippable milestones (many children healthily never do them) must never
-  // trigger the signpost — that would be exactly the false alarm we avoid.
-  if (!entry.skippable && comparisonMonths > entry.typicalEndMonths + SIGNPOST_GRACE_MONTHS) {
-    return { kind: 'range-with-signpost', text, signpost: SIGNPOST_TEXT };
-  }
-  return { kind: 'range', text };
+  return { kind: 'range', text: rangeText(entry.typicalStartMonths, entry.typicalEndMonths) };
 }

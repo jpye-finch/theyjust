@@ -5,12 +5,11 @@ import { milestoneStatus } from './rangePhrase';
 
 type Props = {
   entry: CatalogueEntry;
-  comparisonMonths: number;
   achievedAgeText: string | null;
 };
 
-export function MilestoneRow({ entry, comparisonMonths, achievedAgeText }: Props) {
-  const status = milestoneStatus(entry, comparisonMonths, achievedAgeText);
+export function MilestoneRow({ entry, achievedAgeText }: Props) {
+  const status = milestoneStatus(entry, achievedAgeText);
 
   if (status.kind === 'achieved') {
     // An achieved first reads as ink-stamped: damson type on a faint damson wash.
@@ -26,9 +25,6 @@ export function MilestoneRow({ entry, comparisonMonths, achievedAgeText }: Props
     <View style={styles.row}>
       <Text style={styles.title}>{entry.title}</Text>
       <Text style={styles.subtitle}>{status.text}</Text>
-      {status.kind === 'range-with-signpost' ? (
-        <Text style={styles.signpost}>{status.signpost}</Text>
-      ) : null}
     </View>
   );
 }
@@ -47,11 +43,4 @@ const styles = StyleSheet.create({
   titleAchieved: { fontFamily: font.bold, fontSize: type.body, color: color.damson },
   subtitle: { fontFamily: font.body, fontSize: type.label, color: color.inkMuted },
   ageAchieved: { fontFamily: font.medium, fontSize: type.label, color: color.damson },
-  signpost: {
-    fontFamily: font.serifItalic,
-    fontSize: type.label,
-    color: color.inkMuted,
-    marginTop: space.xs,
-    lineHeight: 21,
-  },
 });

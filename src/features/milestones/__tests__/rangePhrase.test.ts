@@ -1,4 +1,4 @@
-import { milestoneStatus, rangeText, SIGNPOST_TEXT } from '../rangePhrase';
+import { milestoneStatus, rangeText } from '../rangePhrase';
 
 const entry = {
   id: 'first_steps',
@@ -33,33 +33,25 @@ describe('rangeText', () => {
 
 describe('milestoneStatus', () => {
   it('celebrates achieved milestones regardless of timing', () => {
-    expect(milestoneStatus(entry, 30, '20 months')).toEqual({
+    expect(milestoneStatus(entry, '20 months')).toEqual({
       kind: 'achieved',
       ageText: '20 months',
     });
   });
 
-  it('shows the range before and inside the window', () => {
-    expect(milestoneStatus(entry, 5, null)).toEqual({
+  it('shows the typical range whenever it has not been achieved', () => {
+    expect(milestoneStatus(entry, null)).toEqual({
       kind: 'range',
       text: 'Typically emerges between 8 and 18 months',
     });
-    expect(milestoneStatus(entry, 18, null).kind).toBe('range');
   });
 
-  it('stays calm up to two months past the outer bound', () => {
-    expect(milestoneStatus(entry, 20, null).kind).toBe('range');
-  });
-
-  it('adds the gentle signpost beyond outer bound + 2 months', () => {
-    expect(milestoneStatus(entry, 20.1, null)).toEqual({
-      kind: 'range-with-signpost',
-      text: 'Typically emerges between 8 and 18 months',
-      signpost: SIGNPOST_TEXT,
-    });
-  });
-
-  it('never signposts commonly-skipped milestones', () => {
-    expect(milestoneStatus({ ...entry, skippable: true }, 25, null).kind).toBe('range');
+  it('reads the same however old the child is', () => {
+    // The row once grew a worried sentence once a child passed the window,
+    // which for an older child fired on many rows at once. That guidance now
+    // sits once at the top of the screen, so a row is a description of the
+    // milestone rather than a verdict on the child reading it.
+    expect(milestoneStatus(entry, null)).toEqual(milestoneStatus(entry, null));
+    expect(milestoneStatus(entry, null).kind).toBe('range');
   });
 });
