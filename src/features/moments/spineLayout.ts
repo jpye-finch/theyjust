@@ -3,7 +3,7 @@
 // quiet year does not become thousands of pixels of empty scroll.
 
 import { formatAgeParts } from '../children/age';
-import { formatDayMonth } from '../../lib/date';
+import { addMonths, formatDayMonth } from '../../lib/date';
 import type { Moment } from './momentQueries';
 import { momentTitle } from './momentText';
 
@@ -54,24 +54,6 @@ function toUtc(iso: string): Date {
 
 function daysBetween(from: string, to: string): number {
   return Math.round((toUtc(to).getTime() - toUtc(from).getTime()) / MS_PER_DAY);
-}
-
-/** from + n months, clamping to the last day of the target month. */
-function addMonths(iso: string, n: number): string {
-  const d = toUtc(iso);
-  const firstOfTarget = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + n, 1));
-  const daysInTarget = new Date(
-    Date.UTC(firstOfTarget.getUTCFullYear(), firstOfTarget.getUTCMonth() + 1, 0),
-  ).getUTCDate();
-  return new Date(
-    Date.UTC(
-      firstOfTarget.getUTCFullYear(),
-      firstOfTarget.getUTCMonth(),
-      Math.min(d.getUTCDate(), daysInTarget),
-    ),
-  )
-    .toISOString()
-    .slice(0, 10);
 }
 
 // Monthly through 24 months, then each birthday. 24 is not arbitrary: it is the

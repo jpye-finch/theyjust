@@ -48,3 +48,23 @@ export function formatDayMonth(iso: string): string {
   const [, month, day] = iso.split('-');
   return `${Number(day)} ${MONTHS[Number(month) - 1].slice(0, 3)}`;
 }
+
+// Shared because three modules need the same calendar month step: the spine's
+// age rules, the notification plan, and any future ruler. Clamps to the last day
+// of the target month, so 31 Jan + 1 month is 28 (or 29) Feb rather than 3 March.
+export function addMonths(iso: string, n: number): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  const firstOfTarget = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + n, 1));
+  const daysInTarget = new Date(
+    Date.UTC(firstOfTarget.getUTCFullYear(), firstOfTarget.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  return new Date(
+    Date.UTC(
+      firstOfTarget.getUTCFullYear(),
+      firstOfTarget.getUTCMonth(),
+      Math.min(d.getUTCDate(), daysInTarget),
+    ),
+  )
+    .toISOString()
+    .slice(0, 10);
+}

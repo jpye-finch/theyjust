@@ -1,4 +1,4 @@
-import { formatDayMonth, formatDisplayDate, isRealDate, toIsoDate } from '../date';
+import { addMonths, formatDayMonth, formatDisplayDate, isRealDate, toIsoDate } from '../date';
 
 describe('isRealDate', () => {
   it('accepts real calendar dates, including leap days', () => {
@@ -77,5 +77,29 @@ describe('formatDayMonth', () => {
   it('returns the raw value when it is not a date', () => {
     // Same defensive contract as formatDisplayDate: never render "NaN".
     expect(formatDayMonth('nonsense')).toBe('nonsense');
+  });
+});
+
+describe('addMonths', () => {
+  it('advances by whole months', () => {
+    expect(addMonths('2026-01-15', 1)).toBe('2026-02-15');
+    expect(addMonths('2026-01-15', 7)).toBe('2026-08-15');
+    expect(addMonths('2026-01-15', 24)).toBe('2028-01-15');
+  });
+
+  it('clamps to the last day of a shorter month', () => {
+    // 31 Jan + 1 month has no 31 Feb to land on.
+    expect(addMonths('2026-01-31', 1)).toBe('2026-02-28');
+    expect(addMonths('2026-08-31', 1)).toBe('2026-09-30');
+  });
+
+  it('knows about leap years', () => {
+    expect(addMonths('2028-01-31', 1)).toBe('2028-02-29');
+    expect(addMonths('2028-02-29', 12)).toBe('2029-02-28');
+  });
+
+  it('goes backwards too', () => {
+    expect(addMonths('2026-03-15', -1)).toBe('2026-02-15');
+    expect(addMonths('2026-01-15', -1)).toBe('2025-12-15');
   });
 });
