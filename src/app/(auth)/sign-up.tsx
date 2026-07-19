@@ -8,16 +8,36 @@ import { color, font, space, type } from '@/theme/tokens';
 export default function SignUp() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
 
   const signUp = async (email: string, password: string) => {
     setBusy(true);
     setError(null);
-    const { error: err } = await supabase.auth.signUp({ email, password });
-    if (err) setError(err.message);
+    const { data, error: err } = await supabase.auth.signUp({ email, password });
     setBusy(false);
-    // Local dev has email confirmation disabled, so this signs the user
-    // straight in and the auth gate redirects.
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    // With email confirmation on, Supabase returns a user but no session. There
+    // is nothing for the auth gate to redirect on, so the screen has to say so
+    // itself — otherwise Sign up looks like it silently did nothing.
+    if (!data.session) setPendingEmail(email);
   };
+
+  if (pendingEmail) {
+    return (
+      <View style={styles.screen}>
+        <Text style={styles.title}>Check your email</Text>
+        <Text style={styles.blurb}>
+          {`We sent a confirmation link to ${pendingEmail}. Tap it and you are in.`}
+        </Text>
+        <Link href="/(auth)/sign-in" style={styles.link}>
+          Back to sign in
+        </Link>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.screen}>
@@ -44,6 +64,13 @@ const styles = StyleSheet.create({
     color: color.ink,
     textAlign: 'center',
     marginBottom: space.sm,
+  },
+  blurb: {
+    fontFamily: font.body,
+    fontSize: type.body,
+    color: color.inkMuted,
+    textAlign: 'center',
+    lineHeight: 24,
   },
   link: {
     fontFamily: font.medium,
