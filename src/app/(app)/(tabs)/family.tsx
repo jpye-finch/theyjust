@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { TextButton } from '@/components/TextButton';
 import { childAge, formatChildAge } from '@/features/children/age';
 import { ChildForm } from '@/features/children/ChildForm';
 import { useChildren, useCreateChild, useUpdateChild } from '@/features/children/queries';
 import { deleteAccount } from '@/features/family/deleteAccount';
 import { exportEverything } from '@/features/family/exportData';
+import { useNotificationCadence } from '@/features/notifications/notificationSettings';
+import type { NotificationCadence } from '@/features/notifications/notificationPlan';
 import { confirmDestructive, notify } from '@/lib/dialog';
 import { supabase } from '@/lib/supabase';
 import { color, font, hairline, space, type } from '@/theme/tokens';
@@ -21,6 +23,7 @@ export default function FamilyScreen() {
   const updateChild = useUpdateChild();
   const [mode, setMode] = useState<FormMode>({ type: 'idle' });
   const [exporting, setExporting] = useState(false);
+  const { cadence, setCadence } = useNotificationCadence();
 
   // Every transition clears stale mutation errors, so a failed save on one
   // child never surfaces on another child's untouched form.
@@ -143,6 +146,33 @@ export default function FamilyScreen() {
           ) : (
             <TextButton label="Add another child" onPress={startAdding} />
           )}
+          {/* expo-notifications cannot schedule on web, so the row is absent
+              there rather than present and inert. */}
+          {Platform.OS !== 'web' ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionHeading}>Reminders</Text>
+              <Text style={styles.blurb}>
+                A quiet note when your little one turns a month older, or when something you saved a
+                few months ago comes round again.
+              </Text>
+              <View style={styles.cadenceRow}>
+                {(['weekly', 'monthly', 'off'] as NotificationCadence[]).map((option) => (
+                  <Pressable
+                    key={option}
+                    onPress={() => setCadence(option)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: cadence === option }}
+                    accessibilityLabel={`Remind me ${option}`}
+                    style={[styles.cadence, cadence === option && styles.cadenceActive]}
+                  >
+                    <Text style={cadence === option ? styles.cadenceTextActive : styles.cadenceText}>
+                      {option === 'weekly' ? 'Weekly' : option === 'monthly' ? 'Monthly' : 'Off'}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          ) : null}
           <View style={styles.section}>
             <Text style={styles.sectionHeading}>Your data</Text>
             <Text style={styles.blurb}>
@@ -195,5 +225,11 @@ const styles = StyleSheet.create({
   // voice on this screen belongs to the children's names.
   sectionHeading: { fontFamily: font.medium, fontSize: type.title, color: color.ink },
   blurb: { fontFamily: font.body, fontSize: type.label, color: color.inkMuted, lineHeight: 21 },
+  cadenceRow: { flexDirection: 'row', gap: space.xl, marginTop: space.xs },
+  // Selection is an underline, never a pill (DESIGN.md).
+  cadence: { paddingBottom: space.xs, borderBottomWidth: 1, borderBottomColor: 'transparent' },
+  cadenceActive: { borderBottomColor: color.damson },
+  cadenceText: { fontFamily: font.medium, fontSize: type.label, color: color.inkMuted },
+  cadenceTextActive: { fontFamily: font.medium, fontSize: type.label, color: color.damson },
   signOut: { marginTop: space.lg, paddingTop: space.lg },
 });
