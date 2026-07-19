@@ -1,7 +1,8 @@
 import { useRouter } from 'expo-router';
 import { Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
 import { PrimaryButton } from '@/components/PrimaryButton';
-import { childAge, formatChildAge } from '@/features/children/age';
+import { childAge } from '@/features/children/age';
+import { ChildSwitcher } from '@/features/children/ChildSwitcher';
 import { useSelectedChild } from '@/features/children/selectedChild';
 import { achievedAgeTexts, useMomentSummaries } from '@/features/milestones/achievements';
 import { CATALOGUE, CATEGORY_LABELS, MilestoneCategory } from '@/features/milestones/catalogue';
@@ -45,31 +46,16 @@ export default function MilestonesScreen() {
       stickySectionHeadersEnabled={false}
       ListHeaderComponent={
         <View style={styles.header}>
-          {children.length > 1 ? (
-            <View style={styles.switcher}>
-              {children.map((c) => {
-                const isSel = c.id === selected.id;
-                return (
-                  <Pressable
-                    key={c.id}
-                    onPress={() => select(c.id)}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: isSel }}
-                    accessibilityLabel={`Show ${c.name}'s milestones`}
-                    style={[styles.switchItem, isSel && styles.switchItemSelected]}
-                  >
-                    <Text style={isSel ? styles.switchTextSelected : styles.switchText}>
-                      {c.name}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          ) : null}
-          <Text style={styles.childName} accessibilityRole="header">
-            {selected.name}
-          </Text>
-          <Text style={styles.childAge}>{formatChildAge(age)}</Text>
+          {/* The same switcher as the Timeline header: one way to change child,
+              in the same place on both screens. It replaced a chip row that did
+              the same job in a different idiom, plus a name and age it repeated. */}
+          <ChildSwitcher
+            childrenList={children}
+            selected={selected}
+            onSelect={select}
+            onAddChild={() => router.push('/family')}
+            size="hero"
+          />
         </View>
       }
       renderSectionHeader={({ section }) => (
@@ -124,13 +110,6 @@ const styles = StyleSheet.create({
   emptyButton: { alignSelf: 'stretch', paddingHorizontal: space.xl },
   header: { paddingHorizontal: space.lg, paddingTop: space.xl, paddingBottom: space.md, gap: space.xs },
   // A hairline-underline selector (echoes the Field focus motif), not pill chips.
-  switcher: { flexDirection: 'row', gap: space.xl, marginBottom: space.md },
-  switchItem: { paddingBottom: space.xs, borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  switchItemSelected: { borderBottomColor: color.damson },
-  switchText: { fontFamily: font.medium, fontSize: type.body, color: color.inkMuted },
-  switchTextSelected: { fontFamily: font.medium, fontSize: type.body, color: color.ink },
-  childName: { fontFamily: font.displayBold, fontSize: type.hero, color: color.ink, letterSpacing: -0.5 },
-  childAge: { fontFamily: font.body, fontSize: type.label, color: color.inkMuted },
   // Book-chapter headings, not tracked-uppercase SaaS kickers.
   sectionHeader: {
     fontFamily: font.serifItalic,

@@ -1,43 +1,55 @@
 import Feather from '@expo/vector-icons/Feather';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { color, font, space, type } from '@/theme/tokens';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { ChildSwitcher } from '@/features/children/ChildSwitcher';
+import type { Child } from '@/features/children/queries';
+import { color, space } from '@/theme/tokens';
 import type { TimelineView } from './timelineView';
 
 type Props = {
-  childName: string;
+  childrenList: Child[];
+  selected: Child;
+  onSelectChild: (id: string) => void;
+  onAddChild: () => void;
   view: TimelineView;
   onSelectView: (next: TimelineView) => void;
   onCapture: () => void;
 };
 
-export function TimelineHeader({ childName, view, onSelectView, onCapture }: Props) {
+export function TimelineHeader({
+  childrenList,
+  selected,
+  onSelectChild,
+  onAddChild,
+  view,
+  onSelectView,
+  onCapture,
+}: Props) {
+  // One button offering the OTHER view, rather than two showing which is active.
+  // Two mutually exclusive views need no state control: a list of cards and a
+  // spine are unmistakable, so the page already says where you are. The button
+  // only has to offer the alternative, which makes it an action, not a state.
+  const target: TimelineView = view === 'list' ? 'spine' : 'list';
+
   return (
     <View style={styles.header}>
-      <View>
-        <Text style={styles.brand}>TheyJust</Text>
-        <Text style={styles.childLine}>{`${childName}'s story`}</Text>
-      </View>
+      <ChildSwitcher
+        childrenList={childrenList}
+        selected={selected}
+        onSelect={onSelectChild}
+        onAddChild={onAddChild}
+      />
       <View style={styles.actions}>
-        {/* Selection is an underline, not a chip: DESIGN.md rules out pills. */}
         <Pressable
-          onPress={() => onSelectView('list')}
+          onPress={() => onSelectView(target)}
           accessibilityRole="button"
-          accessibilityLabel="List view"
-          style={[styles.toggle, view === 'list' && styles.toggleActive]}
-        >
-          <Feather name="list" size={18} color={view === 'list' ? color.damson : color.inkMuted} />
-        </Pressable>
-        <Pressable
-          onPress={() => onSelectView('spine')}
-          accessibilityRole="button"
-          accessibilityLabel="Timeline view"
-          style={[styles.toggle, view === 'spine' && styles.toggleActive]}
+          accessibilityLabel={target === 'spine' ? 'Switch to timeline view' : 'Switch to list view'}
+          style={styles.toggle}
         >
           {/* git-commit is a line with a node on it — the view it selects. */}
           <Feather
-            name="git-commit"
-            size={18}
-            color={view === 'spine' ? color.damson : color.inkMuted}
+            name={target === 'spine' ? 'git-commit' : 'list'}
+            size={20}
+            color={color.inkMuted}
           />
         </Pressable>
         <Pressable
@@ -65,16 +77,8 @@ const styles = StyleSheet.create({
     paddingBottom: space.md,
     backgroundColor: color.paper,
   },
-  brand: { fontFamily: font.displayBold, fontSize: type.display, color: color.ink, letterSpacing: -0.5 },
-  childLine: { fontFamily: font.body, fontSize: type.label, color: color.inkMuted },
-  actions: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  toggle: {
-    paddingHorizontal: space.xs,
-    paddingBottom: space.xs,
-    borderBottomWidth: 1,
-    borderBottomColor: 'transparent',
-  },
-  toggleActive: { borderBottomColor: color.damson },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  toggle: { padding: space.xs },
   add: {
     width: 44,
     height: 44,
@@ -82,6 +86,5 @@ const styles = StyleSheet.create({
     backgroundColor: color.damson,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: space.sm,
   },
 });

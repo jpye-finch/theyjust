@@ -43,7 +43,7 @@ function useFirstPhotoUrls(moments: Moment[]): Record<string, string> {
 export default function TimelineScreen() {
   const router = useRouter();
   const { session } = useSession();
-  const { selected, loading } = useSelectedChild();
+  const { children, selected, select, loading } = useSelectedChild();
   const { data } = useTimeline(selected?.id ?? null);
   const moments = data ?? NO_MOMENTS;
   const photoUrls = useFirstPhotoUrls(moments);
@@ -65,7 +65,10 @@ export default function TimelineScreen() {
 
   const header = (
     <TimelineHeader
-      childName={selected.name}
+      childrenList={children}
+      selected={selected}
+      onSelectChild={select}
+      onAddChild={() => router.push('/family')}
       view={view}
       onSelectView={setView}
       onCapture={() => router.push('/capture')}
