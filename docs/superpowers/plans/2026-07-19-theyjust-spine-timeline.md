@@ -19,7 +19,7 @@
 - `npm test` pins `TZ=America/Los_Angeles`; a bare `npx jest` uses the host zone. Always use `npm test`.
 - Local `tsc` needs `rm -f .expo/types/router.d.ts` first; `tsconfig.json` excludes `supabase/functions`.
 - **Never run `npm run lint`** — the project has no eslint config, and Expo's lint command scaffolds one and installs dependencies, contaminating the tree.
-- RNTL v14: `render` and `renderHook` are **async — await them**. `getByText` matches a `Text`'s *full* string, so assert whole lines.
+- RNTL v14: `render`, `renderHook`, `rerender` and `act` are **all async — await every one of them**. `act` returns a thenable even when its callback is synchronous, and an unawaited `act` leaks a broken act environment into the *next* test in the file, so the failure surfaces somewhere other than the line that caused it. `getByText` matches a `Text`'s *full* string, so assert whole lines.
 - Imports: `@/theme/tokens` and `@/components/...` even inside `src/features` (established pattern — see `MomentCard.tsx`); relative for same-feature and cross-feature modules.
 - `fetchTimeline` returns moments **newest-first**. The spine reads downward through time, so `layoutSpine` sorts oldest-first itself. Do not assume input order.
 - Dates are ISO `YYYY-MM-DD` strings. Parse them as UTC (`new Date(\`${iso}T00:00:00Z\`)`), exactly as `src/features/children/age.ts` does — a device timezone must never shift a stored date.
@@ -686,7 +686,9 @@ describe('SpineRow', () => {
     const { rerender } = await render(<SpineRow row={row} photoUrl={null} onPress={jest.fn()} />);
     expect(screen.queryByTestId('spine-thumb')).toBeNull();
 
-    rerender(<SpineRow row={row} photoUrl="https://example.test/a.jpg" onPress={jest.fn()} />);
+    // rerender is async in RNTL v14 too — without the await the assertion runs
+    // against the pre-rerender tree.
+    await rerender(<SpineRow row={row} photoUrl="https://example.test/a.jpg" onPress={jest.fn()} />);
     expect(screen.getByTestId('spine-thumb').props.source).toEqual({
       uri: 'https://example.test/a.jpg',
     });
@@ -1068,7 +1070,10 @@ describe('useTimelineView', () => {
     const { result } = await renderHook(() => useTimelineView());
     await waitFor(() => expect(result.current.view).toBe('list'));
 
-    act(() => result.current.setView('spine'));
+    // RNTL's act() always wraps its callback as async and returns a thenable,
+    // even for a synchronous callback. Not awaiting it leaves effects unflushed
+    // and leaks a broken act environment into the NEXT test in the file.
+    await act(() => result.current.setView('spine'));
 
     await waitFor(() => expect(result.current.view).toBe('spine'));
     expect(mockedStorage.setItem).toHaveBeenCalledWith('timeline-view', 'spine');
