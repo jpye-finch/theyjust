@@ -99,17 +99,20 @@ function ruleDates(origin: string): { label: string; date: string }[] {
   return marks;
 }
 
+// `newer` is the row above, `older` the row below: the spine runs newest-first,
+// so scrolling down goes back in time and a rule's distance from the top of the
+// gap is how far BACK it sits from the row above it.
 function rulesInGap(
   origin: string,
-  from: string,
-  to: string,
+  newer: string,
+  older: string,
   gapDays: number,
   height: number,
 ): SpineMark[] {
   if (gapDays <= 0) return [];
   return ruleDates(origin)
-    .filter((mark) => mark.date > from && mark.date <= to)
-    .map((mark) => ({ label: mark.label, offset: (daysBetween(from, mark.date) / gapDays) * height }))
+    .filter((mark) => mark.date > older && mark.date <= newer)
+    .map((mark) => ({ label: mark.label, offset: (daysBetween(mark.date, newer) / gapDays) * height }))
     .filter(
       (mark) =>
         // Clear of the head above (which is 44px of type, not a hairline) and of
@@ -122,11 +125,14 @@ function rulesInGap(
 }
 
 export function layoutSpine({ dateOfBirth, dueDate, moments }: SpineInput): SpineRow[] {
-  // fetchTimeline returns newest-first; the spine reads downward through time.
-  const ordered = [...moments].sort((a, b) => a.occurred_on.localeCompare(b.occurred_on));
+  // Newest first, matching the list view: you open the app to see what just
+  // happened, and on a five-year spine an oldest-first order would land you at
+  // birth with thousands of pixels between you and today. Scrolling down goes
+  // back through time, so Born anchors the BOTTOM — the beginning you scroll
+  // back to rather than the thing you always start on.
+  const ordered = [...moments].sort((a, b) => b.occurred_on.localeCompare(a.occurred_on));
 
   const entries = [
-    { key: 'born', kind: 'born' as const, momentId: null, date: dateOfBirth, title: 'Born' },
     ...ordered.map((m) => ({
       key: m.id,
       kind: 'moment' as const,
@@ -134,6 +140,7 @@ export function layoutSpine({ dateOfBirth, dueDate, moments }: SpineInput): Spin
       date: m.occurred_on,
       title: momentTitle(m),
     })),
+    { key: 'born', kind: 'born' as const, momentId: null, date: dateOfBirth, title: 'Born' },
   ];
 
   // The ruler follows corrected age when there is a due date: for a premature
@@ -147,7 +154,10 @@ export function layoutSpine({ dateOfBirth, dueDate, moments }: SpineInput): Spin
   for (let i = 0; i < entries.length; i++) {
     const entry = entries[i];
     const next = entries[i + 1];
-    const gapDays = next ? Math.max(0, daysBetween(entry.date, next.date)) : 0;
+    // `next` is the row BELOW, which is older. Negative means a moment dated
+    // before the child was born — clamp rather than draw upward through the row
+    // above it.
+    const gapDays = next ? Math.max(0, daysBetween(next.date, entry.date)) : 0;
     const height = next ? gapPx(gapDays) : MIN_GAP;
 
     const rules = next ? rulesInGap(rulerOrigin, entry.date, next.date, gapDays, height) : [];
