@@ -10,26 +10,20 @@ type Props = {
   selected: Child;
   onSelect: (id: string) => void;
   onAddChild: () => void;
-  /** The Milestones screen leads with the child, so its name carries more weight. */
-  size?: 'display' | 'hero';
 };
 
 // The child's name IS the celebration voice (DESIGN.md), so it is Fraunces and it
 // leads the screen. It replaced the wordmark: you know which app you are in, and
 // whose story you are reading is the thing actually worth saying.
-export function ChildSwitcher({
-  childrenList,
-  selected,
-  onSelect,
-  onAddChild,
-  size = 'display',
-}: Props) {
+export function ChildSwitcher({ childrenList, selected, onSelect, onAddChild }: Props) {
   const [open, setOpen] = useState(false);
   const ageOf = (child: Child) =>
     formatChildAge(childAge(child.date_of_birth, child.due_date, new Date()));
 
   return (
-    <View>
+    // Shrinkable, so a long name ellipsizes rather than shoving the header's
+    // buttons off the edge of a phone.
+    <View style={styles.root}>
       <Pressable
         onPress={() => setOpen(true)}
         accessibilityRole="button"
@@ -37,7 +31,9 @@ export function ChildSwitcher({
         accessibilityState={{ expanded: open }}
       >
         <View style={styles.nameRow}>
-          <Text style={size === 'hero' ? styles.nameHero : styles.name}>{selected.name}</Text>
+          <Text style={styles.name} numberOfLines={1}>
+            {selected.name}
+          </Text>
           <Feather name={open ? 'chevron-up' : 'chevron-down'} size={18} color={color.inkMuted} />
         </View>
         {/* The age, not "'s story": it is the frame everything else is read
@@ -95,9 +91,17 @@ export function ChildSwitcher({
 }
 
 const styles = StyleSheet.create({
+  root: { flexShrink: 1 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
-  name: { fontFamily: font.displayBold, fontSize: type.display, color: color.ink, letterSpacing: -0.5 },
-  nameHero: { fontFamily: font.displayBold, fontSize: type.hero, color: color.ink, letterSpacing: -0.5 },
+  // One size on every screen. Timeline used to run smaller than Milestones and
+  // Family, so moving between tabs made the same heading jump.
+  name: {
+    flexShrink: 1,
+    fontFamily: font.displayBold,
+    fontSize: type.hero,
+    color: color.ink,
+    letterSpacing: -0.5,
+  },
   age: { fontFamily: font.body, fontSize: type.label, color: color.inkMuted },
   backdrop: {
     flex: 1,

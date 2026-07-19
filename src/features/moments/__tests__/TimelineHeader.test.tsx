@@ -1,6 +1,18 @@
 import { render, screen, userEvent } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import type { Child } from '../../children/queries';
 import { TimelineHeader } from '../TimelineHeader';
+
+// An iPhone with a Dynamic Island. The header reads the top inset so its
+// content clears it; in a bare test render there is no provider to read from.
+const IPHONE = {
+  frame: { x: 0, y: 0, width: 390, height: 844 },
+  insets: { top: 59, left: 0, right: 0, bottom: 34 },
+};
+
+const renderHeader = (ui: React.ReactElement) =>
+  render(<SafeAreaProvider initialMetrics={IPHONE}>{ui}</SafeAreaProvider>);
 
 const mabel: Child = {
   id: 'c1',
@@ -23,7 +35,7 @@ afterEach(() => jest.clearAllMocks());
 
 describe('TimelineHeader', () => {
   it('leads with the child, not a wordmark', async () => {
-    await render(<TimelineHeader {...props} view="list" />);
+    await renderHeader(<TimelineHeader {...props} view="list" />);
     expect(screen.getByText('Mabel')).toBeTruthy();
     // The wordmark told a reader nothing they did not already know.
     expect(screen.queryByText('TheyJust')).toBeNull();
@@ -32,7 +44,7 @@ describe('TimelineHeader', () => {
   it('offers the spine when the list is showing', async () => {
     const onSelectView = jest.fn();
     const user = userEvent.setup();
-    await render(<TimelineHeader {...props} view="list" onSelectView={onSelectView} />);
+    await renderHeader(<TimelineHeader {...props} view="list" onSelectView={onSelectView} />);
     // One button, labelled for where it takes you — not two to compare.
     await user.press(screen.getByLabelText('Switch to timeline view'));
     expect(onSelectView).toHaveBeenCalledWith('spine');
@@ -42,7 +54,7 @@ describe('TimelineHeader', () => {
   it('offers the list when the spine is showing', async () => {
     const onSelectView = jest.fn();
     const user = userEvent.setup();
-    await render(<TimelineHeader {...props} view="spine" onSelectView={onSelectView} />);
+    await renderHeader(<TimelineHeader {...props} view="spine" onSelectView={onSelectView} />);
     await user.press(screen.getByLabelText('Switch to list view'));
     expect(onSelectView).toHaveBeenCalledWith('list');
     expect(screen.queryByLabelText('Switch to timeline view')).toBeNull();
@@ -51,8 +63,18 @@ describe('TimelineHeader', () => {
   it('still opens capture', async () => {
     const onCapture = jest.fn();
     const user = userEvent.setup();
-    await render(<TimelineHeader {...props} view="list" onCapture={onCapture} />);
+    await renderHeader(<TimelineHeader {...props} view="list" onCapture={onCapture} />);
     await user.press(screen.getByLabelText('Capture a moment'));
     expect(onCapture).toHaveBeenCalled();
+  });
+
+  it('clears the notch rather than sitting under it', async () => {
+    // A fixed 24pt top padding put the child's name underneath the Dynamic
+    // Island on every modern iPhone — and a browser has no notch, so the web
+    // preview could never have shown it.
+    await renderHeader(<TimelineHeader {...props} view="list" />);
+    const header = screen.getByText('Mabel').parent?.parent?.parent?.parent;
+    const padding = StyleSheet.flatten(header?.props.style).paddingTop;
+    expect(padding).toBeGreaterThanOrEqual(IPHONE.insets.top);
   });
 });

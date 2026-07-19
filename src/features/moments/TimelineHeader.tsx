@@ -1,5 +1,6 @@
 import Feather from '@expo/vector-icons/Feather';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChildSwitcher } from '@/features/children/ChildSwitcher';
 import type { Child } from '@/features/children/queries';
 import { color, space } from '@/theme/tokens';
@@ -29,9 +30,12 @@ export function TimelineHeader({
   // spine are unmistakable, so the page already says where you are. The button
   // only has to offer the alternative, which makes it an action, not a state.
   const target: TimelineView = view === 'list' ? 'spine' : 'list';
+  // Without this the name sits under the Dynamic Island on every modern iPhone.
+  // A browser has no notch, so this is invisible in the web preview.
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, { paddingTop: insets.top + space.md }]}>
       <ChildSwitcher
         childrenList={childrenList}
         selected={selected}
@@ -73,12 +77,14 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     paddingHorizontal: space.lg,
-    paddingTop: space.xl,
     paddingBottom: space.md,
     backgroundColor: color.paper,
   },
-  actions: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-  toggle: { padding: space.xs },
+  // The buttons never shrink; the name gives way instead.
+  actions: { flexDirection: 'row', alignItems: 'center', gap: space.md, flexShrink: 0 },
+  // 44×44 is Apple's minimum touch target; a 20px glyph with 4px of padding
+  // around it was 28 and genuinely fiddly to hit.
+  toggle: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   add: {
     width: 44,
     height: 44,

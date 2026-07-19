@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { childAge } from '@/features/children/age';
 import { ChildSwitcher } from '@/features/children/ChildSwitcher';
@@ -19,6 +20,7 @@ const SECTIONS = (Object.keys(CATEGORY_LABELS) as MilestoneCategory[]).map((cate
 export default function MilestonesScreen() {
   const router = useRouter();
   const { children, selected, select, loading } = useSelectedChild();
+  const insets = useSafeAreaInsets();
   const { data: moments = [] } = useMomentSummaries(selected?.id ?? null);
 
   if (loading) return null;
@@ -45,7 +47,7 @@ export default function MilestonesScreen() {
       keyExtractor={(e) => e.id}
       stickySectionHeadersEnabled={false}
       ListHeaderComponent={
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + space.md }]}>
           {/* The same switcher as the Timeline header: one way to change child,
               in the same place on both screens. It replaced a chip row that did
               the same job in a different idiom, plus a name and age it repeated. */}
@@ -54,7 +56,7 @@ export default function MilestonesScreen() {
             selected={selected}
             onSelect={select}
             onAddChild={() => router.push('/family')}
-            size="hero"
+
           />
         </View>
       }
@@ -115,7 +117,7 @@ const styles = StyleSheet.create({
     marginBottom: space.sm,
   },
   emptyButton: { alignSelf: 'stretch', paddingHorizontal: space.xl },
-  header: { paddingHorizontal: space.lg, paddingTop: space.xl, paddingBottom: space.md, gap: space.xs },
+  header: { paddingHorizontal: space.lg, paddingBottom: space.md, gap: space.xs },
   // Karla and muted: the quiet voice that sources the list, not part of the
   // celebration. A hairline above sets it apart from the last milestone.
   note: {

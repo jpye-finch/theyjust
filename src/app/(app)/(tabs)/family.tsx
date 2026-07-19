@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TextButton } from '@/components/TextButton';
 import { childAge, formatChildAge } from '@/features/children/age';
 import { ChildForm } from '@/features/children/ChildForm';
@@ -24,6 +25,7 @@ export default function FamilyScreen() {
   const [mode, setMode] = useState<FormMode>({ type: 'idle' });
   const [exporting, setExporting] = useState(false);
   const { cadence, setCadence } = useNotificationCadence();
+  const insets = useSafeAreaInsets();
 
   // Every transition clears stale mutation errors, so a failed save on one
   // child never surfaces on another child's untouched form.
@@ -91,7 +93,7 @@ export default function FamilyScreen() {
       data={children}
       keyExtractor={(c) => c.id}
       ListHeaderComponent={
-        <Text style={styles.heading} accessibilityRole="header">
+        <Text style={[styles.heading, { paddingTop: insets.top + space.md }]} accessibilityRole="header">
           Your family
         </Text>
       }
@@ -202,7 +204,6 @@ const styles = StyleSheet.create({
     color: color.ink,
     letterSpacing: -0.5,
     paddingHorizontal: space.lg,
-    paddingTop: space.xl,
     paddingBottom: space.md,
   },
   childRow: {
