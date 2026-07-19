@@ -1510,3 +1510,36 @@ Check the console for errors after switching views in both directions — a `get
 **One behaviour change to call out at demo:** the header stops scrolling away in the list view. It is a consequence of hoisting the header above both views, which the toggle and `getItemLayout` both need. If it turns out to be unwelcome, the fix is to pass `header` back into each list's `ListHeaderComponent` and drop `getItemLayout` — the spine still virtualises without it.
 
 **Type consistency.** `gapPx`, `formatGap`, `layoutSpine`, `SpineRow` (type), `SpineMark`, `SpineInput` are defined in Tasks 1–3 and consumed in 4–5. The component `SpineRow` and the type `SpineRow` share a name, so every consumer imports the type as `type SpineRow as Row` — as written in both `SpineRow.tsx` and `SpineTimeline.tsx`. `useTimelineView()` returns `{view, setView}` (Task 6) and is destructured that way in Task 7. `TimelineHeader` takes `childName`/`view`/`onSelectView`/`onCapture`; `SpineTimeline` takes `dateOfBirth`/`dueDate`/`moments`/`photoUrls`/`onOpenMoment`. `selected.due_date` is the `Child` field name from `src/features/children/queries.ts`. `formatShortDate` is added in Task 4 and used in `SpineRow.tsx`.
+
+---
+
+## Post-implementation amendments
+
+This plan shipped, then two things changed after seeing it run against real data.
+The tasks above are left as executed; this section records what supersedes them.
+
+**1. Gap captions are gone (was Task 3, Task 4).** `formatGap`, `gapCaption` and
+`captionOffset` were removed entirely. Against real data the caption duplicated
+the age rules running down the same gap, and contradicted them: "14 months" (a
+duration) sat inches from "13 months old" (an age), same unit, no way to tell
+which was which. The rules already do the job the caption was invented for. See
+§5 of the spec.
+
+**2. The date column was redesigned (was Task 4).** `formatShortDate` (dd/mm/yyyy)
+is replaced by `formatDayMonth` ("18 Jul") in `src/lib/date.ts`. `SpineRow` now
+carries `dateLabel: string | null` and `yearLabel: string | null` instead of
+formatting `row.date` directly:
+
+- the year renders only on the row where it changes,
+- the whole column is blank when a row repeats the date above it,
+- both slots keep their space when empty, so dots and titles stay aligned,
+- `DATE_WIDTH` fell from 76 to 50, which the titles absorbed.
+
+Four defects were found by running the thing rather than by testing it — three in
+the first runtime pass (a date column too narrow, so `dd/mm/yyyy` wrapped and read
+as two dates; rules spanning the full width and shouting louder than the moments;
+a caption-clearance rule punching holes in the month sequence), and the caption's
+redundancy in the second. None of them were catchable by a unit test: they are all
+questions of what the thing looks like once it holds real data. Budget for a
+runtime pass on any layout work here, and treat "the tests pass" as necessary
+rather than sufficient.

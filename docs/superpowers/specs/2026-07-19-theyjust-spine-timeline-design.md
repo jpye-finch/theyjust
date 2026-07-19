@@ -45,7 +45,7 @@ Two years of fourteen moments comes to roughly 1,800px, four or five screens, ev
 
 Left to right, matching the approved mockup:
 
-- **Date**, `dd/mm/yyyy`, Karla, `type.caption`, `color.inkMuted`, tabular figures so the column stays aligned.
+- **Date**, day and abbreviated month ("18 Jul"), Karla, `type.caption`, `color.inkMuted`, tabular figures so the column stays aligned. The **year** sits beneath it, smaller and quieter, and only on the row where the year changes — it is a heading for the run of dates below it, not part of any one date. When a row repeats the date above it, **the whole column is blank**: a cluster then reads as one day carrying several moments rather than the same date stamped four times. Both slots keep their space when empty so the dots and titles stay aligned.
 - **Dot** on the spine, `color.ink`.
 - **Title**, Fraunces — the celebration voice, correct here because the title is the celebration. Resolved through the existing `momentTitle`, so a catalogue milestone reads "They just crawled!" and a custom moment reads verbatim.
 - **Thumbnail**, right-aligned, only when the moment has a photo. Uses the existing signed-URL hook.
@@ -64,19 +64,14 @@ A proportional spine without a ruler is only a feeling. Two devices give it scal
 
 For a premature baby the rules follow **corrected age**, consistent with the rest of the app, via the existing `childAge`.
 
-**Gap captions** — any gap over 21 days carries a small centred muted caption ("7 weeks") on the empty stretch.
+**Gap captions — designed, built, and then removed.** The original design named any gap over 21 days with a caption ("7 weeks") to stop an empty stretch reading as absence rather than elapsed time.
 
-This exists to resolve a real ambiguity. A gap means elapsed time, but it can read as absence — and "nothing happened for four months" is precisely the anxiety this product exists to soothe. Naming the interval converts blankness into measurement: not *nothing happened*, but *seven weeks passed*.
+Seeing it running against real data killed it, for two reasons:
 
-**A deliberate divergence.** Gap captions use a dedicated `formatGap(days)` rather than the app's `formatAgeParts`:
+1. **Redundant.** The rationale assumed the gap would be blank. It is not — the age rules run down it, and they state the elapsed time continuously and more precisely than one caption can.
+2. **Actively confusing.** "14 months" (a duration since the previous moment) sat inches from "13 months old" (the child's age), in the same unit, with nothing to tell a reader which was which.
 
-```
-< 8 weeks   → "N weeks"
-< 24 months → "N months"
-otherwise   → "N years"
-```
-
-`formatAgeParts` renders an *age* at full precision ("1 month, 2 weeks"), which is right for a child and wrong for an interval — a gap wants one coarse unit that can be read at a glance while scrolling. The two formatters stay separate on purpose.
+The rules already do the job the caption was invented for. It is gone, along with `formatGap`.
 
 ## 6. The toggle
 
