@@ -38,7 +38,7 @@ describe('TimelineHeader', () => {
     await renderHeader(<TimelineHeader {...props} view="list" />);
     expect(screen.getByText('Mabel')).toBeTruthy();
     // The wordmark told a reader nothing they did not already know.
-    expect(screen.queryByText('TheyJust')).toBeNull();
+    expect(screen.queryByText('Firsts')).toBeNull();
   });
 
   it('offers the spine when the list is showing', async () => {

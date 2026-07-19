@@ -16,7 +16,7 @@ export async function exportEverything(exportedAt: string): Promise<void> {
 
   const zip = new JSZip();
   zip.file(
-    'theyjust-export.json',
+    'firsts-export.json',
     JSON.stringify(buildExportBundle(exportedAt, children, moments), null, 2),
   );
 
@@ -30,7 +30,7 @@ export async function exportEverything(exportedAt: string): Promise<void> {
     }
   }
 
-  const fileName = `theyjust-export-${exportedAt.slice(0, 10)}.zip`;
+  const fileName = `firsts-export-${exportedAt.slice(0, 10)}.zip`;
 
   if (Platform.OS === 'web') {
     // No share sheet on web: hand the browser a download instead.

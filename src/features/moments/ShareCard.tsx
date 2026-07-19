@@ -20,7 +20,7 @@ export const ShareCard = forwardRef<View, Props>(function ShareCard(
       <View style={styles.body}>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.age}>{ageLine}</Text>
-        <Text style={styles.brand}>TheyJust</Text>
+        <Text style={styles.brand}>Firsts</Text>
       </View>
     </View>
   );

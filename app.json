@@ -1,19 +1,19 @@
 {
   "expo": {
-    "name": "theyjust",
-    "slug": "theyjust",
+    "name": "Firsts",
+    "slug": "firsts",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "theyjust",
+    "scheme": "firsts",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.theyjust.app",
+      "bundleIdentifier": "com.firsts.app",
       "supportsTablet": false
     },
     "android": {
-      "package": "com.theyjust.app",
+      "package": "com.firsts.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

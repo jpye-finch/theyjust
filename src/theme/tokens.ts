@@ -1,4 +1,4 @@
-// TheyJust visual identity — the "well-made hardback" lane (see
+// Firsts visual identity — the "well-made hardback" lane (see
 // docs/superpowers/specs/2026-07-17-theyjust-visual-identity-brief.md).
 // Colours were authored in OKLCH and converted to sRGB hex (React Native has no
 // oklch()); every text pairing was checked for WCAG AA before being locked here.

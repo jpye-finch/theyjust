@@ -21,7 +21,7 @@ export default function SignIn() {
   return (
     <View style={styles.screen}>
       <View style={styles.brand}>
-        <Text style={styles.title}>TheyJust</Text>
+        <Text style={styles.title}>Firsts</Text>
         <Text style={styles.subtitle}>Every first, remembered.</Text>
       </View>
       <AuthForm submitLabel="Sign in" onSubmit={signIn} error={error} busy={busy} />
