@@ -25,6 +25,13 @@ export function MilestoneRow({ entry, achievedAgeText }: Props) {
     <View style={styles.row}>
       <Text style={styles.title}>{entry.title}</Text>
       <Text style={styles.subtitle}>{status.text}</Text>
+      {/* The one place a row says something about THIS milestone rather than the
+          child: some are commonly skipped, and a parent watching for one that
+          may never come deserves to know that plainly. It reads the same at
+          every age, so it can never land as a verdict. */}
+      {entry.skippable ? (
+        <Text style={styles.skippable}>Plenty of children skip this one entirely.</Text>
+      ) : null}
     </View>
   );
 }
@@ -43,4 +50,5 @@ const styles = StyleSheet.create({
   titleAchieved: { fontFamily: font.bold, fontSize: type.body, color: color.damson },
   subtitle: { fontFamily: font.body, fontSize: type.label, color: color.inkMuted },
   ageAchieved: { fontFamily: font.medium, fontSize: type.label, color: color.damson },
+  skippable: { fontFamily: font.serifItalic, fontSize: type.caption, color: color.inkMuted },
 });

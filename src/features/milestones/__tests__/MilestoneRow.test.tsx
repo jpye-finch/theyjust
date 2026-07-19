@@ -3,6 +3,7 @@ import { CATALOGUE } from '../catalogue';
 import { MilestoneRow } from '../MilestoneRow';
 
 const firstSteps = CATALOGUE.find((e) => e.id === 'first_steps')!;
+const crawled = CATALOGUE.find((e) => e.id === 'crawled')!;
 
 describe('MilestoneRow', () => {
   it('renders an achieved milestone with a tick and age', async () => {
@@ -25,5 +26,17 @@ describe('MilestoneRow', () => {
     await render(<MilestoneRow entry={firstSteps} achievedAgeText={null} />);
     expect(screen.queryByText(/doctor or health visitor/)).toBeNull();
     expect(screen.queryByText(/Every child is different/)).toBeNull();
+  });
+
+  it('says so on a milestone plenty of children skip', async () => {
+    // crawling is the obvious one: a parent watching for it who never sees it
+    // should not be left wondering.
+    await render(<MilestoneRow entry={crawled} achievedAgeText={null} />);
+    expect(screen.getByText('Plenty of children skip this one entirely.')).toBeTruthy();
+  });
+
+  it('stays quiet about skipping on a milestone nobody skips', async () => {
+    await render(<MilestoneRow entry={firstSteps} achievedAgeText={null} />);
+    expect(screen.queryByText(/skip this one/)).toBeNull();
   });
 });
