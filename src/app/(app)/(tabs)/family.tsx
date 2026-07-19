@@ -200,7 +200,8 @@ const styles = StyleSheet.create({
   loading: { flex: 1, justifyContent: 'center', backgroundColor: color.paper },
   heading: {
     fontFamily: font.displayBold,
-    fontSize: type.hero,
+    // Matches the ChildSwitcher heading on Timeline and Milestones.
+    fontSize: type.display,
     color: color.ink,
     letterSpacing: -0.5,
     paddingHorizontal: space.lg,

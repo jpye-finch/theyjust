@@ -93,12 +93,14 @@ export function ChildSwitcher({ childrenList, selected, onSelect, onAddChild }: 
 const styles = StyleSheet.create({
   root: { flexShrink: 1 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
-  // One size on every screen. Timeline used to run smaller than Milestones and
-  // Family, so moving between tabs made the same heading jump.
+  // One size on every screen — Timeline used to run smaller than Milestones and
+  // Family, so moving between tabs made the same heading jump. display rather
+  // than hero: 34 crowded the header's buttons, and the scale has no step
+  // between them worth inventing (DESIGN.md wants ≥1.25 between sizes).
   name: {
     flexShrink: 1,
     fontFamily: font.displayBold,
-    fontSize: type.hero,
+    fontSize: type.display,
     color: color.ink,
     letterSpacing: -0.5,
   },
