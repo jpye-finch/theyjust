@@ -15,33 +15,48 @@ const moment = (overrides: Partial<Moment> = {}): Moment => ({
 });
 
 describe('lookBackTitle', () => {
-  it('counts in words, because there are only six of them', () => {
-    expect(lookBackTitle(2)).toBe('Two months ago today');
-    expect(lookBackTitle(3)).toBe('Three months ago today');
-    expect(lookBackTitle(6)).toBe('Six months ago today');
-    expect(lookBackTitle(12)).toBe('A year ago today');
-    expect(lookBackTitle(18)).toBe('A year and a half ago today');
-    expect(lookBackTitle(24)).toBe('Two years ago today');
+  it('names the child and counts in words', () => {
+    expect(lookBackTitle('Wren', 2)).toBe('Wren, two months ago today');
+    expect(lookBackTitle('Wren', 3)).toBe('Wren, three months ago today');
+    expect(lookBackTitle('Wren', 6)).toBe('Wren, six months ago today');
+    expect(lookBackTitle('Wren', 12)).toBe('Wren, a year ago today');
+    expect(lookBackTitle('Wren', 18)).toBe('Wren, a year and a half ago today');
+    expect(lookBackTitle('Wren', 24)).toBe('Wren, two years ago today');
+  });
+
+  it('carries the attribution, so the body never has to', () => {
+    // Which child it was has to be said somewhere, and the body cannot say it:
+    // a custom moment is the parent's own sentence, often already containing
+    // the name.
+    expect(lookBackTitle('Dave', 2)).toContain('Dave');
   });
 });
 
 describe('lookBackBody', () => {
-  it('names the child rather than saying "they"', () => {
-    // momentTitle() would give "They just rolled over!", and "they" is ambiguous
-    // the moment a family has two children.
+  it('keeps the app’s own wording for a catalogue milestone', () => {
+    // Building a sentence around the name gave "Wren took their first steps",
+    // because the catalogue's verb phrases are written to follow "They just …".
+    // With the name in the title, the phrase can stay as it was written.
     const rolled = moment({ milestone_id: 'rolled_over', custom_title: null });
-    expect(lookBackBody('Wren', rolled)).toBe('Wren rolled over.');
+    expect(lookBackBody(rolled)).toBe('They just rolled over!');
   });
 
-  it('uses a custom moment’s own words, untouched', () => {
-    expect(lookBackBody('Wren', moment())).toBe('First swim');
+  it('leaves a custom moment’s words completely alone', () => {
+    expect(lookBackBody(moment())).toBe('First swim');
+  });
+
+  it('does not double a name the parent already wrote', () => {
+    // The commonest shape of custom title. Prefixing the child would read
+    // "Mabel Mabel did a pool on her potty".
+    const written = moment({ custom_title: 'Mabel did a pool on her potty' });
+    expect(lookBackBody(written)).toBe('Mabel did a pool on her potty');
   });
 
   it('falls back to the custom title if a milestone id is unknown', () => {
     // A catalogue entry could be renamed or removed; a notification must still
-    // say something rather than crash or read "Wren undefined.".
+    // say something rather than crash.
     const orphan = moment({ milestone_id: 'not_in_catalogue', custom_title: 'Something' });
-    expect(lookBackBody('Wren', orphan)).toBe('Something');
+    expect(lookBackBody(orphan)).toBe('Something');
   });
 });
 
@@ -58,9 +73,9 @@ describe('the copy rules from spec §3', () => {
   const everyString = [
     AGE_BODY,
     ageTitle('Wren', '7 months'),
-    lookBackBody('Wren', moment()),
-    lookBackBody('Wren', moment({ milestone_id: 'rolled_over', custom_title: null })),
-    ...[2, 3, 6, 12, 18, 24].map(lookBackTitle),
+    lookBackBody(moment()),
+    lookBackBody(moment({ milestone_id: 'rolled_over', custom_title: null })),
+    ...[2, 3, 6, 12, 18, 24].map((m) => lookBackTitle('Wren', m)),
   ];
 
   it('never addresses the parent’s behaviour', () => {

@@ -77,7 +77,9 @@ describe('planNotifications', () => {
       cadence: 'weekly',
     });
     expect(plan.map((n) => n.fireOn)).toEqual(['2026-08-10', '2026-09-10']);
-    expect(plan[0].title).toBe('Two months ago today');
+    // The child is named in the title, so the body can be the moment exactly as
+    // the parent wrote it.
+    expect(plan[0].title).toBe('Sol, two months ago today');
     expect(plan[0].body).toBe('First swim');
     expect(plan[0].momentId).toBe('m1');
     expect(plan[0].key).toBe('look-m1-2');
