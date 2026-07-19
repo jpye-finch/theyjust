@@ -1,4 +1,3 @@
-import Feather from '@expo/vector-icons/Feather';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -8,6 +7,9 @@ import { useSelectedChild } from '@/features/children/selectedChild';
 import { MomentCard } from '@/features/moments/MomentCard';
 import { useTimeline, type Moment } from '@/features/moments/momentQueries';
 import { signedPhotoUrl } from '@/features/moments/photoUpload';
+import { SpineTimeline } from '@/features/moments/SpineTimeline';
+import { TimelineHeader } from '@/features/moments/TimelineHeader';
+import { useTimelineView } from '@/features/moments/timelineView';
 import { color, font, space, type } from '@/theme/tokens';
 
 // useTimeline returns `data: undefined` while loading and whenever it is disabled
@@ -45,6 +47,7 @@ export default function TimelineScreen() {
   const { data } = useTimeline(selected?.id ?? null);
   const moments = data ?? NO_MOMENTS;
   const photoUrls = useFirstPhotoUrls(moments);
+  const { view, setView } = useTimelineView();
 
   if (loading) return null;
 
@@ -60,69 +63,61 @@ export default function TimelineScreen() {
     );
   }
 
-  return (
-    <FlatList
-      style={styles.list}
-      data={moments}
-      keyExtractor={(m) => m.id}
-      ListHeaderComponent={
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.brand}>TheyJust</Text>
-            <Text style={styles.childLine}>{`${selected.name}'s story`}</Text>
-          </View>
-          <Pressable
-            onPress={() => router.push('/capture')}
-            accessibilityRole="button"
-            accessibilityLabel="Capture a moment"
-            style={styles.add}
-          >
-            {/* A vector glyph centres in its own box; a text "+" sits on the
-                maths axis and always reads high inside a circle. */}
-            <Feather name="plus" size={22} color={color.onDamson} />
-          </Pressable>
-        </View>
-      }
-      ListEmptyComponent={
-        <View style={styles.feedEmpty}>
-          <Text style={styles.feedEmptyTitle}>No moments yet</Text>
-          <Text style={styles.feedEmptyBody}>Tap + to capture their first, or start from Milestones.</Text>
-        </View>
-      }
-      renderItem={({ item }) => (
-        <Pressable onPress={() => router.push(`/moment/${item.id}`)}>
-          <MomentCard
-            moment={item}
-            childDateOfBirth={selected.date_of_birth}
-            loggedByYou={item.logged_by === session?.user.id}
-            photoUrl={photoUrls[item.id] ?? null}
-          />
-        </Pressable>
-      )}
+  const header = (
+    <TimelineHeader
+      childName={selected.name}
+      view={view}
+      onSelectView={setView}
+      onCapture={() => router.push('/capture')}
     />
+  );
+
+  if (view === 'spine' && moments.length > 0) {
+    return (
+      <View style={styles.screen}>
+        {header}
+        <SpineTimeline
+          dateOfBirth={selected.date_of_birth}
+          dueDate={selected.due_date}
+          moments={moments}
+          photoUrls={photoUrls}
+          onOpenMoment={(id) => router.push(`/moment/${id}`)}
+        />
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.screen}>
+      {header}
+      <FlatList
+        style={styles.list}
+        data={moments}
+        keyExtractor={(m) => m.id}
+        ListEmptyComponent={
+          <View style={styles.feedEmpty}>
+            <Text style={styles.feedEmptyTitle}>No moments yet</Text>
+            <Text style={styles.feedEmptyBody}>Tap + to capture their first, or start from Milestones.</Text>
+          </View>
+        }
+        renderItem={({ item }) => (
+          <Pressable onPress={() => router.push(`/moment/${item.id}`)}>
+            <MomentCard
+              moment={item}
+              childDateOfBirth={selected.date_of_birth}
+              loggedByYou={item.logged_by === session?.user.id}
+              photoUrl={photoUrls[item.id] ?? null}
+            />
+          </Pressable>
+        )}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: color.paper },
   list: { backgroundColor: color.paper },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    paddingHorizontal: space.lg,
-    paddingTop: space.xl,
-    paddingBottom: space.md,
-  },
-  brand: { fontFamily: font.displayBold, fontSize: type.display, color: color.ink, letterSpacing: -0.5 },
-  childLine: { fontFamily: font.body, fontSize: type.label, color: color.inkMuted },
-  add: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: color.damson,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: space.xl, gap: space.md, backgroundColor: color.paper },
   emptyTitle: { fontFamily: font.display, fontSize: 30, color: color.ink, textAlign: 'center', letterSpacing: -0.3 },
   emptyBody: { fontFamily: font.body, fontSize: type.body, color: color.inkMuted, textAlign: 'center', marginBottom: space.sm },
