@@ -133,3 +133,112 @@ describe('layoutSpine rows', () => {
     expect(rows[1].key).toBe('m1');
   });
 });
+
+describe('layoutSpine rules and captions', () => {
+  it('captions a gap longer than three weeks', () => {
+    const rows = layoutSpine({
+      dateOfBirth: BIRTH,
+      dueDate: null,
+      moments: [moment('m1', '2025-07-10', 'Seven weeks on')],
+    });
+    // 49 days from birth.
+    expect(rows[0].gapCaption?.label).toBe('7 weeks');
+    // Centred in its own trailing space, which for a gap this size clears the head.
+    expect(rows[0].gapCaption?.offset).toBeCloseTo(rows[0].height / 2);
+  });
+
+  it('keeps the caption clear of the row above on a short gap', () => {
+    const rows = layoutSpine({
+      dateOfBirth: BIRTH,
+      dueDate: null,
+      moments: [moment('m1', '2025-06-13', 'Three weeks on')],
+    });
+    // 22 days is 103px, so the centre would be 51px — inside the 44px head.
+    expect(rows[0].gapCaption?.label).toBe('3 weeks');
+    expect(rows[0].gapCaption?.offset).toBe(56);
+  });
+
+  it('leaves short gaps uncaptioned', () => {
+    // Under three weeks the spacing already says it; a caption would be noise.
+    const rows = layoutSpine({
+      dateOfBirth: BIRTH,
+      dueDate: null,
+      moments: [moment('m1', '2025-06-05', 'A fortnight on')],
+    });
+    expect(rows[0].gapCaption).toBeNull();
+  });
+
+  it('rules the spine as the months pass', () => {
+    const rows = layoutSpine({
+      dateOfBirth: BIRTH,
+      dueDate: null,
+      moments: [moment('m1', '2025-08-22', 'Three months on')],
+    });
+    expect(rows[0].rules.map((r) => r.label)).toEqual(['1 month old', '2 months old']);
+    // The 3-month rule lands exactly on the row below and is suppressed there.
+  });
+
+  it('places each rule proportionally within the gap', () => {
+    const rows = layoutSpine({
+      dateOfBirth: BIRTH,
+      dueDate: null,
+      moments: [moment('m1', '2025-09-22', 'Four months on')],
+    });
+    const threeMonths = rows[0].rules.find((r) => r.label === '3 months old');
+    // 22/08 sits 92 of 123 days along, so about three quarters down the gap.
+    expect(threeMonths!.offset / rows[0].height).toBeCloseTo(92 / 123, 2);
+  });
+
+  it('drops a rule that would land on the gap caption', () => {
+    const rows = layoutSpine({
+      dateOfBirth: BIRTH,
+      dueDate: null,
+      moments: [moment('m1', '2025-09-22', 'Four months on')],
+    });
+    // Over 123 days the caption sits at 122px and the 2-month rule at 121px.
+    // Two labels a pixel apart is worse than one, so the rule gives way.
+    expect(rows[0].rules.map((r) => r.label)).toEqual(['1 month old', '3 months old']);
+  });
+
+  it('switches from months to years at two', () => {
+    const rows = layoutSpine({
+      dateOfBirth: BIRTH,
+      dueDate: null,
+      moments: [moment('m1', '2028-05-22', 'Three years on')],
+    });
+    const labels = rows[0].rules.map((r) => r.label);
+    expect(labels).toContain('2 years old');
+    expect(labels).toContain('3 years old');
+    expect(labels).not.toContain('25 months old');
+  });
+
+  it('suppresses a rule that would crowd the row above it', () => {
+    // 22/06 falls in the two-day gap between these moments, so its rule would
+    // draw straight across the title of the row above. A row's head is 44px of
+    // type, not a hairline, so the clearance has to account for it.
+    const rows = layoutSpine({
+      dateOfBirth: BIRTH,
+      dueDate: null,
+      moments: [moment('m1', '2025-06-21', 'Just before'), moment('m2', '2025-06-23', 'Just after')],
+    });
+    expect(rows[1].rules).toEqual([]);
+  });
+
+  it('rules by corrected age for a premature baby', () => {
+    // Born six weeks early: "1 month old" belongs a month after the DUE date,
+    // which is 03/08 — 73 of the 102 days to the moment below.
+    const rows = layoutSpine({
+      dateOfBirth: BIRTH,
+      dueDate: '2025-07-03',
+      moments: [moment('m1', '2025-09-01', 'Later')],
+    });
+    const oneMonth = rows[0].rules.find((r) => r.label === '1 month old');
+    expect(oneMonth!.offset / rows[0].height).toBeCloseTo(73 / 102, 2);
+  });
+
+  it('gives the last row no rules or caption', () => {
+    const rows = layoutSpine({ dateOfBirth: BIRTH, dueDate: null, moments: [moment('m1', '2025-06-01', 'A')] });
+    expect(rows[1].rules).toEqual([]);
+    expect(rows[1].gapCaption).toBeNull();
+  });
+});
