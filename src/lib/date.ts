@@ -39,3 +39,13 @@ export function formatDisplayDate(iso: string): string {
   const [year, month, day] = iso.split('-');
   return `${Number(day)} ${MONTHS[Number(month) - 1]} ${year}`;
 }
+
+// dd/mm/yyyy for the spine's date column, where a narrow fixed-width date keeps
+// the column aligned. Parsed by string rather than Date, so a timezone can never
+// shift the day.
+export function formatShortDate(iso: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!match) return iso;
+  const [, year, month, day] = match;
+  return `${day}/${month}/${year}`;
+}

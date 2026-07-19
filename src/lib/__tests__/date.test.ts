@@ -1,4 +1,4 @@
-import { formatDisplayDate, isRealDate, toIsoDate } from '../date';
+import { formatDisplayDate, formatShortDate, isRealDate, toIsoDate } from '../date';
 
 describe('isRealDate', () => {
   it('accepts real calendar dates, including leap days', () => {
@@ -57,5 +57,20 @@ describe('toIsoDate', () => {
   it('reads the local day, not the UTC day', () => {
     expect(toIsoDate(new Date(2026, 2, 9, 23, 30))).toBe('2026-03-09');
     expect(toIsoDate(new Date(2026, 11, 31, 22, 0))).toBe('2026-12-31');
+  });
+});
+
+describe('formatShortDate', () => {
+  it('renders a stored date as dd/mm/yyyy', () => {
+    expect(formatShortDate('2026-07-08')).toBe('08/07/2026');
+  });
+
+  it('zero-pads single digits', () => {
+    expect(formatShortDate('2025-01-05')).toBe('05/01/2025');
+  });
+
+  it('returns the raw value when it is not a date', () => {
+    // Same defensive contract as formatDisplayDate: never render "NaN".
+    expect(formatShortDate('nonsense')).toBe('nonsense');
   });
 });
