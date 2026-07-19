@@ -152,7 +152,7 @@ export function formatGap(days: number): string {
 npm test -- spineLayout && rm -f .expo/types/router.d.ts && npx tsc --noEmit
 ```
 
-Expected: 8 passed; tsc exit 0.
+Expected: 7 passed; tsc exit 0.
 
 - [ ] **Step 5: Commit**
 
@@ -345,7 +345,7 @@ export function layoutSpine({ dateOfBirth, dueDate, moments }: SpineInput): Spin
 npm test -- spineLayout && rm -f .expo/types/router.d.ts && npx tsc --noEmit
 ```
 
-Expected: 15 passed; tsc exit 0.
+Expected: 14 passed; tsc exit 0.
 
 - [ ] **Step 5: Commit**
 
@@ -434,10 +434,13 @@ describe('layoutSpine rules and captions', () => {
   });
 
   it('switches from months to years at two', () => {
+    // Deliberately NOT dated on a birthday: a rule falling exactly on the row
+    // below is suppressed by the clearance check, so a moment on 22/05/2028
+    // would hide the very "3 years old" rule this test is about.
     const rows = layoutSpine({
       dateOfBirth: BIRTH,
       dueDate: null,
-      moments: [moment('m1', '2028-05-22', 'Three years on')],
+      moments: [moment('m1', '2028-08-22', 'Three years on')],
     });
     const labels = rows[0].rules.map((r) => r.label);
     expect(labels).toContain('2 years old');
@@ -601,7 +604,7 @@ Then replace the body of the `for` loop in `layoutSpine` so rules and captions a
 npm test -- spineLayout && rm -f .expo/types/router.d.ts && npx tsc --noEmit
 ```
 
-Expected: 26 passed; tsc exit 0.
+Expected: 24 passed; tsc exit 0.
 
 - [ ] **Step 5: Commit**
 

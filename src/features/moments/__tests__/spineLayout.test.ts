@@ -204,7 +204,10 @@ describe('layoutSpine rules and captions', () => {
     const rows = layoutSpine({
       dateOfBirth: BIRTH,
       dueDate: null,
-      moments: [moment('m1', '2028-05-22', 'Three years on')],
+      // Deliberately NOT dated on a birthday: a rule falling exactly on the row
+      // below is suppressed by the clearance check, so a moment on 22/05/2028
+      // would hide the very "3 years old" rule this test is about.
+      moments: [moment('m1', '2028-08-22', 'Three years on')],
     });
     const labels = rows[0].rules.map((r) => r.label);
     expect(labels).toContain('2 years old');
