@@ -1,5 +1,4 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { formatShortDate } from '@/lib/date';
 import { color, font, radius, space, type } from '@/theme/tokens';
 import { ROW_HEAD, type SpineRow as Row } from './spineLayout';
 
@@ -10,8 +9,10 @@ type Props = {
 };
 
 const DOT_SIZE = 9;
-const DATE_WIDTH = 76;
-const SPINE_LEFT = 88;
+// "30 Sep" is the widest label this column ever holds — dropping the year from
+// every row bought back roughly a third of it, which the titles get instead.
+const DATE_WIDTH = 50;
+const SPINE_LEFT = 62;
 // Rules live entirely to the RIGHT of the spine. Full-width rules crossed the
 // date column and the spine itself, and — twelve of them down one long gap —
 // shouted louder than the moments they were meant to measure.
@@ -21,7 +22,7 @@ export function SpineRow({ row, photoUrl, onPress }: Props) {
   const openable = row.momentId !== null;
   return (
     // The row's height IS the gap that follows it, so the empty stretch below
-    // the head is the elapsed time, and the rules and caption live inside it.
+    // the head is the elapsed time, and the age rules live inside it.
     <View style={[styles.row, { height: row.height }]}>
       <View style={styles.spine} />
 
@@ -33,19 +34,26 @@ export function SpineRow({ row, photoUrl, onPress }: Props) {
         </View>
       ))}
 
-      {row.gapCaption ? (
-        <Text style={[styles.caption, { top: row.gapCaption.offset }]}>{row.gapCaption.label}</Text>
-      ) : null}
-
       <Pressable
         style={styles.head}
         onPress={openable ? onPress : undefined}
         disabled={!openable}
         accessibilityRole={openable ? 'button' : undefined}
       >
-        <Text style={styles.date} numberOfLines={1}>
-          {formatShortDate(row.date)}
-        </Text>
+        {/* Both slots stay in the layout even when empty, so the dots and titles
+            of a same-day cluster still line up under the row that names it. */}
+        <View style={styles.dateColumn}>
+          {row.dateLabel ? (
+            <Text style={styles.date} numberOfLines={1}>
+              {row.dateLabel}
+            </Text>
+          ) : null}
+          {row.yearLabel ? (
+            <Text style={styles.year} numberOfLines={1}>
+              {row.yearLabel}
+            </Text>
+          ) : null}
+        </View>
         <View style={styles.dot} />
         <Text style={styles.title} numberOfLines={2}>
           {row.title}
@@ -78,15 +86,21 @@ const styles = StyleSheet.create({
   // ROW_HEAD, not a local 44: the layout module suppresses rules that would fall
   // inside this head, so the two must never drift apart.
   head: { flexDirection: 'row', alignItems: 'center', height: ROW_HEAD, paddingRight: space.lg },
+  dateColumn: { width: DATE_WIDTH, alignItems: 'flex-end' },
   date: {
-    // Wide enough for dd/mm/yyyy on one line — at 64px it wrapped to "22/05/20"
-    // over "25", which read as two different dates.
-    width: DATE_WIDTH,
-    textAlign: 'right',
     fontFamily: font.body,
     fontSize: type.caption,
     color: color.inkMuted,
     // Tabular figures keep the date column from shuffling as the digits change.
+    fontVariant: ['tabular-nums'],
+  },
+  // The year is a heading for the run of dates beneath it, not part of any one
+  // date, so it sits quieter and smaller than the day it introduces.
+  year: {
+    fontFamily: font.medium,
+    fontSize: 11,
+    color: color.inkMuted,
+    opacity: 0.75,
     fontVariant: ['tabular-nums'],
   },
   dot: {
@@ -114,12 +128,4 @@ const styles = StyleSheet.create({
   },
   ruleLine: { flex: 1, height: 1, backgroundColor: color.rule },
   ruleLabel: { fontFamily: font.medium, fontSize: type.caption, color: color.inkMuted },
-  caption: {
-    position: 'absolute',
-    left: SPINE_LEFT + space.md,
-    fontFamily: font.body,
-    fontSize: type.caption,
-    color: color.inkMuted,
-    fontStyle: 'italic',
-  },
 });

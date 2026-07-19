@@ -10,22 +10,10 @@ export function gapPx(days: number): number {
   return Math.max(MIN_GAP, Math.sqrt(Math.max(0, days)) * K);
 }
 
-const DAYS_PER_MONTH = 30.4375;
-const DAYS_PER_YEAR = 365.25;
-
-/** A duration in one coarse unit, for a caption read while scrolling. */
-export function formatGap(days: number): string {
-  const weeks = Math.round(days / 7);
-  if (weeks < 8) return `${weeks} week${weeks === 1 ? '' : 's'}`;
-  const months = Math.round(days / DAYS_PER_MONTH);
-  if (months < 24) return `${months} month${months === 1 ? '' : 's'}`;
-  const years = Math.round(days / DAYS_PER_YEAR);
-  return `${years} year${years === 1 ? '' : 's'}`;
-}
-
 import type { Moment } from './momentQueries';
 import { momentTitle } from './momentText';
 import { formatAgeParts } from '../children/age';
+import { formatDayMonth } from '../../lib/date';
 
 const MS_PER_DAY = 86_400_000;
 
@@ -37,12 +25,18 @@ export type SpineRow = {
   momentId: string | null;
   date: string;
   title: string;
+  /** "18 Jul", or null when this row repeats the date of the row above it —
+   *  a cluster then reads as one day carrying several moments, rather than the
+   *  same date stamped four times down the column. */
+  dateLabel: string | null;
+  /** "2026", shown only on the first row of a year. Repeating it on every row
+   *  buys nothing: the spine is in date order and the rules give the scale. */
+  yearLabel: string | null;
   /** This row's own height: the gap that FOLLOWS it. */
   height: number;
   /** Absolute distance from the top, so getItemLayout stays O(1). */
   offset: number;
   rules: SpineMark[];
-  gapCaption: SpineMark | null;
 };
 
 export type SpineInput = {
@@ -127,11 +121,6 @@ function rulesInGap(
     );
 }
 
-/** Centred in the gap, but never inside the head of the row above it. */
-function captionOffset(height: number): number {
-  return Math.max(ROW_HEAD + 12, height / 2);
-}
-
 export function layoutSpine({ dateOfBirth, dueDate, moments }: SpineInput): SpineRow[] {
   // fetchTimeline returns newest-first; the spine reads downward through time.
   const ordered = [...moments].sort((a, b) => a.occurred_on.localeCompare(b.occurred_on));
@@ -161,15 +150,20 @@ export function layoutSpine({ dateOfBirth, dueDate, moments }: SpineInput): Spin
     const gapDays = next ? Math.max(0, daysBetween(entry.date, next.date)) : 0;
     const height = next ? gapPx(gapDays) : MIN_GAP;
 
-    const gapCaption =
-      next && gapDays > CAPTION_MIN_DAYS
-        ? { label: formatGap(gapDays), offset: captionOffset(height) }
-        : null;
-    const rules = next
-      ? rulesInGap(rulerOrigin, entry.date, next.date, gapDays, height)
-      : [];
+    const rules = next ? rulesInGap(rulerOrigin, entry.date, next.date, gapDays, height) : [];
 
-    rows.push({ ...entry, height, offset, rules, gapCaption });
+    const previous = entries[i - 1];
+    const repeatsDate = previous !== undefined && previous.date === entry.date;
+    const startsNewYear = previous === undefined || previous.date.slice(0, 4) !== entry.date.slice(0, 4);
+
+    rows.push({
+      ...entry,
+      dateLabel: repeatsDate ? null : formatDayMonth(entry.date),
+      yearLabel: !repeatsDate && startsNewYear ? entry.date.slice(0, 4) : null,
+      height,
+      offset,
+      rules,
+    });
     offset += height;
   }
   return rows;

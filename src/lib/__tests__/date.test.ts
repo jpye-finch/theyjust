@@ -1,4 +1,4 @@
-import { formatDisplayDate, formatShortDate, isRealDate, toIsoDate } from '../date';
+import { formatDayMonth, formatDisplayDate, isRealDate, toIsoDate } from '../date';
 
 describe('isRealDate', () => {
   it('accepts real calendar dates, including leap days', () => {
@@ -60,17 +60,22 @@ describe('toIsoDate', () => {
   });
 });
 
-describe('formatShortDate', () => {
-  it('renders a stored date as dd/mm/yyyy', () => {
-    expect(formatShortDate('2026-07-08')).toBe('08/07/2026');
+describe('formatDayMonth', () => {
+  it('renders a stored date as day and abbreviated month', () => {
+    expect(formatDayMonth('2026-07-08')).toBe('8 Jul');
   });
 
-  it('zero-pads single digits', () => {
-    expect(formatShortDate('2025-01-05')).toBe('05/01/2025');
+  it('drops the leading zero, which a narrow column does not need', () => {
+    expect(formatDayMonth('2025-01-05')).toBe('5 Jan');
+  });
+
+  it('abbreviates the longer month names', () => {
+    expect(formatDayMonth('2025-09-30')).toBe('30 Sep');
+    expect(formatDayMonth('2025-02-01')).toBe('1 Feb');
   });
 
   it('returns the raw value when it is not a date', () => {
     // Same defensive contract as formatDisplayDate: never render "NaN".
-    expect(formatShortDate('nonsense')).toBe('nonsense');
+    expect(formatDayMonth('nonsense')).toBe('nonsense');
   });
 });

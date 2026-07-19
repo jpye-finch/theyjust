@@ -11,13 +11,15 @@ const row: Row = {
   height: 120,
   offset: 0,
   rules: [],
-  gapCaption: null,
+  dateLabel: '8 Jul',
+  yearLabel: '2026',
 };
 
 describe('SpineRow', () => {
   it('shows the date and the title', async () => {
     await render(<SpineRow row={row} photoUrl={null} onPress={jest.fn()} />);
-    expect(screen.getByText('08/07/2026')).toBeTruthy();
+    expect(screen.getByText('8 Jul')).toBeTruthy();
+    expect(screen.getByText('2026')).toBeTruthy();
     expect(screen.getByText('They just crawled!')).toBeTruthy();
   });
 
@@ -39,20 +41,32 @@ describe('SpineRow', () => {
     expect(onPress).toHaveBeenCalled();
   });
 
-  it('renders the rules and the caption that fall in its trailing space', async () => {
+  it('renders the rules that fall in its trailing space', async () => {
     await render(
       <SpineRow
         row={{
           ...row,
           rules: [{ label: '1 month old', offset: 40 }],
-          gapCaption: { label: '7 weeks', offset: 60 },
         }}
         photoUrl={null}
         onPress={jest.fn()}
       />,
     );
     expect(screen.getByText('1 month old')).toBeTruthy();
-    expect(screen.getByText('7 weeks')).toBeTruthy();
+  });
+
+  it('renders no date at all when the row repeats the day above it', async () => {
+    await render(
+      <SpineRow
+        row={{ ...row, dateLabel: null, yearLabel: null }}
+        photoUrl={null}
+        onPress={jest.fn()}
+      />,
+    );
+    expect(screen.queryByText('8 Jul')).toBeNull();
+    expect(screen.queryByText('2026')).toBeNull();
+    // The title still renders — only the repeated date is withheld.
+    expect(screen.getByText('They just crawled!')).toBeTruthy();
   });
 
   it('does not offer the Born anchor as something to open', async () => {

@@ -40,12 +40,11 @@ export function formatDisplayDate(iso: string): string {
   return `${Number(day)} ${MONTHS[Number(month) - 1]} ${year}`;
 }
 
-// dd/mm/yyyy for the spine's date column, where a narrow fixed-width date keeps
-// the column aligned. Parsed by string rather than Date, so a timezone can never
-// shift the day.
-export function formatShortDate(iso: string): string {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
-  if (!match) return iso;
-  const [, year, month, day] = match;
-  return `${day}/${month}/${year}`;
+// "18 Jul" for the spine's date column. The year is deliberately absent: the
+// spine carries it separately, and only on the row where it changes. Same
+// string-parsing contract as formatDisplayDate — no Date, no timezone.
+export function formatDayMonth(iso: string): string {
+  if (!isRealDate(iso)) return iso;
+  const [, month, day] = iso.split('-');
+  return `${Number(day)} ${MONTHS[Number(month) - 1].slice(0, 3)}`;
 }
