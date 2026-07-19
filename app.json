@@ -36,6 +36,12 @@
       "expo-font",
       "expo-sharing",
       "@react-native-community/datetimepicker",
+      [
+        "expo-notifications",
+        {
+          "color": "#833045"
+        }
+      ],
       "expo-secure-store"
     ],
     "experiments": {
