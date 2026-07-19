@@ -1,4 +1,19 @@
-import { formatGap, gapPx } from '../spineLayout';
+import { formatGap, gapPx, layoutSpine } from '../spineLayout';
+import type { Moment } from '../momentQueries';
+
+const moment = (id: string, occurredOn: string, title: string): Moment => ({
+  id,
+  child_id: 'c1',
+  milestone_id: null,
+  custom_title: title,
+  occurred_on: occurredOn,
+  note: null,
+  logged_by: 'u1',
+  created_at: `${occurredOn}T00:00:00.000Z`,
+  moment_photos: [],
+});
+
+const BIRTH = '2025-05-22';
 
 describe('gapPx', () => {
   it('grows with the square root of elapsed days', () => {
@@ -49,5 +64,72 @@ describe('formatGap', () => {
 
   it('singularises', () => {
     expect(formatGap(7)).toBe('1 week');
+  });
+});
+
+describe('layoutSpine rows', () => {
+  it('anchors every spine at birth, even before anything is logged', () => {
+    const rows = layoutSpine({ dateOfBirth: BIRTH, dueDate: null, moments: [] });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].kind).toBe('born');
+    expect(rows[0].title).toBe('Born');
+    expect(rows[0].date).toBe(BIRTH);
+    expect(rows[0].momentId).toBeNull();
+  });
+
+  it('reads downward through time, whatever order it is given', () => {
+    // fetchTimeline hands back newest-first; the spine must not inherit that.
+    const rows = layoutSpine({
+      dateOfBirth: BIRTH,
+      dueDate: null,
+      moments: [moment('m2', '2025-06-10', 'Later'), moment('m1', '2025-05-29', 'Sooner')],
+    });
+    expect(rows.map((r) => r.title)).toEqual(['Born', 'Sooner', 'Later']);
+  });
+
+  it('gives each row the height of the gap that follows it', () => {
+    const rows = layoutSpine({
+      dateOfBirth: BIRTH,
+      dueDate: null,
+      moments: [moment('m1', '2025-05-29', 'A week later')],
+    });
+    // Born -> m1 is 7 days.
+    expect(Math.round(rows[0].height)).toBe(58);
+    // The last row has no gap to express, so it is just a row.
+    expect(rows[1].height).toBe(44);
+  });
+
+  it('stacks offsets so getItemLayout can be O(1)', () => {
+    const rows = layoutSpine({
+      dateOfBirth: BIRTH,
+      dueDate: null,
+      moments: [moment('m1', '2025-05-29', 'A'), moment('m2', '2025-06-05', 'B')],
+    });
+    expect(rows[0].offset).toBe(0);
+    expect(rows[1].offset).toBe(rows[0].height);
+    expect(rows[2].offset).toBe(rows[0].height + rows[1].height);
+  });
+
+  it('clamps a moment dated before birth instead of drawing backwards', () => {
+    // The date picker does not forbid this today.
+    const rows = layoutSpine({
+      dateOfBirth: BIRTH,
+      dueDate: null,
+      moments: [moment('m1', '2025-01-01', 'Impossible')],
+    });
+    expect(rows[0].height).toBe(44);
+    expect(rows[1].offset).toBe(44);
+  });
+
+  it('resolves the celebration title for a catalogue milestone', () => {
+    const milestone: Moment = { ...moment('m1', '2025-11-01', ''), milestone_id: 'crawled', custom_title: null };
+    const rows = layoutSpine({ dateOfBirth: BIRTH, dueDate: null, moments: [milestone] });
+    expect(rows[1].title).toBe('They just crawled!');
+  });
+
+  it('carries the moment id so a row can open its moment', () => {
+    const rows = layoutSpine({ dateOfBirth: BIRTH, dueDate: null, moments: [moment('m1', '2025-06-01', 'A')] });
+    expect(rows[1].momentId).toBe('m1');
+    expect(rows[1].key).toBe('m1');
   });
 });

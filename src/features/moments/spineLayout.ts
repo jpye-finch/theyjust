@@ -22,3 +22,71 @@ export function formatGap(days: number): string {
   const years = Math.round(days / DAYS_PER_YEAR);
   return `${years} year${years === 1 ? '' : 's'}`;
 }
+
+import type { Moment } from './momentQueries';
+import { momentTitle } from './momentText';
+
+const MS_PER_DAY = 86_400_000;
+
+export type SpineMark = { label: string; offset: number };
+
+export type SpineRow = {
+  key: string;
+  kind: 'born' | 'moment';
+  momentId: string | null;
+  date: string;
+  title: string;
+  /** This row's own height: the gap that FOLLOWS it. */
+  height: number;
+  /** Absolute distance from the top, so getItemLayout stays O(1). */
+  offset: number;
+  rules: SpineMark[];
+  gapCaption: SpineMark | null;
+};
+
+export type SpineInput = {
+  dateOfBirth: string;
+  dueDate: string | null;
+  moments: Moment[];
+};
+
+// Dates are read as UTC calendar days, exactly as age.ts does: a device
+// timezone must never shift a stored date.
+function toUtc(iso: string): Date {
+  return new Date(`${iso}T00:00:00Z`);
+}
+
+function daysBetween(from: string, to: string): number {
+  return Math.round((toUtc(to).getTime() - toUtc(from).getTime()) / MS_PER_DAY);
+}
+
+export function layoutSpine({ dateOfBirth, dueDate, moments }: SpineInput): SpineRow[] {
+  // fetchTimeline returns newest-first; the spine reads downward through time.
+  const ordered = [...moments].sort((a, b) => a.occurred_on.localeCompare(b.occurred_on));
+
+  const entries = [
+    { key: 'born', kind: 'born' as const, momentId: null, date: dateOfBirth, title: 'Born' },
+    ...ordered.map((m) => ({
+      key: m.id,
+      kind: 'moment' as const,
+      momentId: m.id,
+      date: m.occurred_on,
+      title: momentTitle(m),
+    })),
+  ];
+
+  const rows: SpineRow[] = [];
+  let offset = 0;
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
+    const next = entries[i + 1];
+    // Negative means a moment dated before the one above it — clamp rather than
+    // draw upward through the row before.
+    const gapDays = next ? Math.max(0, daysBetween(entry.date, next.date)) : 0;
+    const height = next ? gapPx(gapDays) : MIN_GAP;
+
+    rows.push({ ...entry, height, offset, rules: [], gapCaption: null });
+    offset += height;
+  }
+  return rows;
+}
