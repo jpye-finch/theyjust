@@ -113,6 +113,38 @@ export async function deleteMomentPhoto(photoId: string, storagePath: string): P
   if (error) throw new Error(error.message);
 }
 
+// Every child's moments in one round trip, keyed by child. The notification
+// plan needs the whole family at once — one query rather than a useTimeline per
+// child, which would mean a variable number of hooks and a request each.
+// Still filtered by child_id, per the Plan 1 guardrail: RLS is a per-row
+// post-filter, so an unfiltered select would scan every family's moments.
+export async function fetchFamilyMoments(childIds: string[]): Promise<Record<string, Moment[]>> {
+  if (childIds.length === 0) return {};
+  const { data, error } = await supabase
+    .from('moments')
+    .select('*, moment_photos(*)')
+    .in('child_id', childIds)
+    .order('occurred_on', { ascending: false });
+  if (error) throw error;
+
+  const byChild: Record<string, Moment[]> = {};
+  for (const childId of childIds) byChild[childId] = [];
+  for (const moment of (data ?? []) as Moment[]) {
+    (byChild[moment.child_id] ??= []).push(moment);
+  }
+  return byChild;
+}
+
+export function useFamilyMoments(childIds: string[]) {
+  return useQuery({
+    // Sorted, so the same family always produces the same key whatever order
+    // the children arrived in.
+    queryKey: ['family-moments', [...childIds].sort().join(',')],
+    queryFn: () => fetchFamilyMoments(childIds),
+    enabled: childIds.length > 0,
+  });
+}
+
 export function useTimeline(childId: string | null) {
   return useQuery({
     queryKey: ['timeline', childId],
