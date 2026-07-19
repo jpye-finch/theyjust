@@ -94,9 +94,29 @@ This is worth stating plainly because it changes what is blocked: **local notifi
 
 **Scheduling is cancel-and-rebuild.** The plan is deterministic given its inputs, so the safest scheduler is one that cancels everything and reschedules from scratch. Rebuild on: app foreground, moment created or edited or deleted, child added or edited, settings changed.
 
-**iOS allows 64 pending local notifications.** A rolling eight-week window at one per week uses eight, so the cap is not a constraint in practice — but the scheduler must still window rather than schedule the child's whole future, or a three-year plan would silently truncate.
-
 **Rotation is computed, not stored.** Which child features is derived from the week number and the family's child list, so it needs no persisted cursor and stays deterministic under test.
+
+## 7.1 Both platforms, and they are not the same
+
+iOS and Android are both first-class here. `expo-notifications` gives one scheduling API, but the platforms differ in ways that are the implementer's problem rather than the library's, and each of these is a way the feature silently half-works if it is missed.
+
+**Android**
+
+- **A notification channel is mandatory** (Android 8+). Without one, notifications are dropped in complete silence — no error, nothing delivered. One channel, created at startup before anything is scheduled: *"Moments and anniversaries"*, default importance, so a parent can tune or mute it in system settings without disabling the app entirely.
+- **A monochrome notification icon is mandatory.** Android renders the icon as a silhouette; passing a full-colour icon produces a grey square. This needs a white-on-transparent asset and the `expo-notifications` config plugin in `app.json`, alongside an accent colour (damson).
+- **Android 13+ requires runtime `POST_NOTIFICATIONS` permission.** On older versions permission is implicit. `requestPermissionsAsync` covers both, but §6's timing matters more here: on Android 12 and below the prompt does not appear at all, so the settings row must not imply one did.
+- Scheduling is inexact by default, which is correct for us — a 19:30 reminder does not need `SCHEDULE_EXACT_ALARM`, and asking for that permission for a memory nudge would be disproportionate.
+
+**iOS**
+
+- **64 pending local notifications, hard cap.** A rolling eight-week window at one per week uses eight, so the cap is not a practical constraint — but the scheduler must still window rather than schedule the child's whole future, or a three-year plan would be truncated with no warning.
+- Permission is requested once, per §6, with alert and sound but **no badge**: a count on the app icon is a small unread-pressure mechanic, which is the wrong tone for this product.
+
+**Web**
+
+`expo-notifications` cannot schedule on web. Web is a development surface here, not a shipping target, so the feature is **absent rather than broken**: the settings row is hidden and the scheduler is a no-op behind a `Platform.OS !== 'web'` guard. It must not throw, and it must not prompt.
+
+**Neither platform's delivery is verifiable in Expo Go** — `expo-notifications` is native code and local notification support was withdrawn from Expo Go. Both need a development build.
 
 ## 8. Privacy
 
@@ -112,7 +132,15 @@ No notification content leaves the device. Nothing is logged about what was sent
 
 **Component, RNTL** — the settings row renders the current cadence and changes it; the permission prompt appears on the third moment and never twice.
 
-**Runtime** — needs a development build, since `expo-notifications` is native and absent from Expo Go. Android can be verified without any Apple involvement; iOS needs the bundle identifier from Plan 5 Task 5, so it queues behind the same account as everything else. The pure plan is fully verifiable before either.
+**Runtime** — needs a development build on each platform, since `expo-notifications` is native and absent from Expo Go.
+
+The two platforms unblock at different times, which is worth planning around:
+
+- **Android can be verified now.** No Apple account, no bundle identifier, no certificates — a development build and an emulator are enough. Check delivery, the channel appearing in system settings, the icon rendering as a silhouette rather than a grey square, and the Android 13 permission prompt.
+- **iOS queues behind the Apple Developer account**, because a development build needs the bundle identifier from Plan 5 Task 5. Check delivery, that permission is asked once and only after the third moment, and that no badge appears.
+- **Web** is checked for absence: no settings row, no prompt, nothing thrown.
+
+The pure plan — every interval, cap, priority and string — is fully verifiable in Jest before any of that.
 
 ## 10. Open questions for review
 
