@@ -131,7 +131,9 @@ describe('layoutSpine date labels', () => {
         moment('m3', '2025-07-10', 'Third'),
       ],
     });
-    expect(rows.map((r) => r.dateLabel)).toEqual(['10 Jul', null, null, '22 May']);
+    // Dividers carry no date of their own, so compare only the rows that do.
+    const dated = rows.filter((r) => r.kind !== 'rule');
+    expect(dated.map((r) => r.dateLabel)).toEqual(['10 Jul', null, null, '22 May']);
   });
 
   it('shows the year only where it changes', () => {
@@ -144,7 +146,8 @@ describe('layoutSpine date labels', () => {
         moment('m3', '2026-04-01', 'Still that year'),
       ],
     });
-    expect(rows.map((r) => r.yearLabel)).toEqual(['2026', null, '2025', null]);
+    const dated = rows.filter((r) => r.kind !== 'rule');
+    expect(dated.map((r) => r.yearLabel)).toEqual(['2026', null, '2025', null]);
   });
 
   it('gives a repeated date no year either', () => {
@@ -160,42 +163,49 @@ describe('layoutSpine date labels', () => {
   });
 });
 
-describe('layoutSpine rules', () => {
-  it('rules the spine as the months pass', () => {
-    const rows = layoutSpine({
-      dateOfBirth: BIRTH,
-      dueDate: null,
-      moments: [moment('m1', '2025-08-22', 'Three months on')],
-    });
-    expect(rows[0].rules.map((r) => r.label)).toEqual(['1 month old', '2 months old']);
-    // The 3-month mark falls on 22/08, the date of the row itself, so it would
-    // draw across that row's own title and the clearance check drops it.
-  });
+describe('layoutSpine age dividers', () => {
+  const dividers = (rows: ReturnType<typeof layoutSpine>) =>
+    rows.filter((r) => r.kind === 'rule').map((r) => r.title);
 
-  it('places each rule proportionally within the gap', () => {
+  it('marks every month between birth and the newest moment', () => {
     const rows = layoutSpine({
       dateOfBirth: BIRTH,
       dueDate: null,
       moments: [moment('m1', '2025-09-22', 'Four months on')],
     });
-    const threeMonths = rows[0].rules.find((r) => r.label === '3 months old');
-    // Scrolling down goes back in time, so a rule's offset is how far BACK it
-    // sits from the row above: 22/08 is 31 of the 123 days below 22/09.
-    expect(threeMonths!.offset / rows[0].height).toBeCloseTo(31 / 123, 2);
+    // Newest first, so the dividers count down as you scroll back in time.
+    expect(dividers(rows)).toEqual(['4 months old', '3 months old', '2 months old', '1 month old']);
   });
 
-  it('rules every month of a long gap, leaving no holes in the sequence', () => {
+  it('keeps the cadence through a dense stretch', () => {
+    // Dividers used to be positioned inside the gap between two moments, so a
+    // busy month lost its divider entirely — the rhythm broke exactly where the
+    // most was happening. They are rows now and cannot be crowded out.
     const rows = layoutSpine({
       dateOfBirth: BIRTH,
       dueDate: null,
-      moments: [moment('m1', '2025-09-22', 'Four months on')],
+      moments: [
+        moment('m1', '2025-06-21', 'Just before'),
+        moment('m2', '2025-06-23', 'Just after'),
+      ],
     });
-    // A missing month in an otherwise regular run reads as a bug, so nothing is
-    // dropped except where it would collide with a row.
-    expect(rows[0].rules.map((r) => r.label)).toEqual([
+    expect(dividers(rows)).toEqual(['1 month old']);
+  });
+
+  it('gives a divider its own place in the order', () => {
+    const rows = layoutSpine({
+      dateOfBirth: BIRTH,
+      dueDate: null,
+      moments: [
+        moment('m1', '2025-06-21', 'Before the month turns'),
+        moment('m2', '2025-06-23', 'After it turns'),
+      ],
+    });
+    expect(rows.map((r) => r.title)).toEqual([
+      'After it turns',
       '1 month old',
-      '2 months old',
-      '3 months old',
+      'Before the month turns',
+      'Born',
     ]);
   });
 
@@ -203,47 +213,40 @@ describe('layoutSpine rules', () => {
     const rows = layoutSpine({
       dateOfBirth: BIRTH,
       dueDate: null,
-      // Deliberately clear of the 3-year mark: a rule too close to either row
-      // is suppressed by the clearance check, so dating this on 22/05/2028 (or
-      // just after it) would hide the very "3 years old" rule it is about.
       moments: [moment('m1', '2028-11-22', 'Three and a half years on')],
     });
-    const labels = rows[0].rules.map((r) => r.label);
+    const labels = dividers(rows);
     expect(labels).toContain('2 years old');
     expect(labels).toContain('3 years old');
     expect(labels).not.toContain('25 months old');
   });
 
-  it('suppresses a rule that would crowd the row above it', () => {
-    // 22/06 falls in the two-day gap between these moments, so its rule would
-    // draw straight across the title of the row above. A row's head is 44px of
-    // type, not a hairline, so the clearance has to account for it.
-    const rows = layoutSpine({
-      dateOfBirth: BIRTH,
-      dueDate: null,
-      moments: [moment('m1', '2025-06-21', 'Just before'), moment('m2', '2025-06-23', 'Just after')],
-    });
-    // Newest first, so the 23/06 row is on top and the two-day gap is beneath it.
-    expect(rows[0].rules).toEqual([]);
-  });
-
   it('rules by corrected age for a premature baby', () => {
     // Born six weeks early: "1 month old" belongs a month after the DUE date,
-    // which is 03/08 — 73 of the 102 days to the moment below.
+    // which is 03/08 rather than 22/06.
     const rows = layoutSpine({
       dateOfBirth: BIRTH,
       dueDate: '2025-07-03',
       moments: [moment('m1', '2025-09-01', 'Later')],
     });
-    const oneMonth = rows[0].rules.find((r) => r.label === '1 month old');
-    // 03/08 is 29 of the 102 days below the moment on 01/09.
-    expect(oneMonth!.offset / rows[0].height).toBeCloseTo(29 / 102, 2);
+    const oneMonth = rows.find((r) => r.title === '1 month old');
+    expect(oneMonth!.date).toBe('2025-08-03');
   });
 
-  it('gives the last row no rules', () => {
-    const rows = layoutSpine({ dateOfBirth: BIRTH, dueDate: null, moments: [moment('m1', '2025-06-01', 'A')] });
-    // The last row is Born, with nothing below it to measure against.
-    expect(rows[rows.length - 1].rules).toEqual([]);
-    expect(rows[rows.length - 1].title).toBe('Born');
+  it('carries no date of its own, so the date column skips it', () => {
+    const rows = layoutSpine({
+      dateOfBirth: BIRTH,
+      dueDate: null,
+      moments: [moment('m1', '2025-09-22', 'Four months on')],
+    });
+    const divider = rows.find((r) => r.kind === 'rule')!;
+    expect(divider.dateLabel).toBeNull();
+    expect(divider.yearLabel).toBeNull();
+    expect(divider.momentId).toBeNull();
+  });
+
+  it('draws no dividers before there is anything to divide', () => {
+    const rows = layoutSpine({ dateOfBirth: BIRTH, dueDate: null, moments: [] });
+    expect(dividers(rows)).toEqual([]);
   });
 });

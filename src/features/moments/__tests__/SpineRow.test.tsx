@@ -10,7 +10,6 @@ const row: Row = {
   title: 'They just crawled!',
   height: 120,
   offset: 0,
-  rules: [],
   dateLabel: '8 Jul',
   yearLabel: '2026',
 };
@@ -41,18 +40,29 @@ describe('SpineRow', () => {
     expect(onPress).toHaveBeenCalled();
   });
 
-  it('renders the rules that fall in its trailing space', async () => {
+  it('renders an age divider as a row of its own', async () => {
+    const onPress = jest.fn();
+    const user = userEvent.setup();
     await render(
       <SpineRow
         row={{
           ...row,
-          rules: [{ label: '1 month old', offset: 40 }],
+          kind: 'rule',
+          key: 'rule-2025-06-22',
+          momentId: null,
+          title: '1 month old',
+          dateLabel: null,
+          yearLabel: null,
         }}
         photoUrl={null}
-        onPress={jest.fn()}
+        onPress={onPress}
       />,
     );
     expect(screen.getByText('1 month old')).toBeTruthy();
+    // A divider is scenery: nothing to open, and no date of its own.
+    expect(screen.queryByText('8 Jul')).toBeNull();
+    await user.press(screen.getByText('1 month old'));
+    expect(onPress).not.toHaveBeenCalled();
   });
 
   it('renders no date at all when the row repeats the day above it', async () => {

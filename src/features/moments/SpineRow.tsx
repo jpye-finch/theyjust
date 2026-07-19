@@ -13,27 +13,30 @@ const DOT_SIZE = 9;
 // every row bought back roughly a third of it, which the titles get instead.
 const DATE_WIDTH = 50;
 const SPINE_LEFT = 62;
-// Rules live entirely to the RIGHT of the spine. Full-width rules crossed the
-// date column and the spine itself, and — twelve of them down one long gap —
-// shouted louder than the moments they were meant to measure.
-const RULE_LEFT = SPINE_LEFT + 60;
 
 export function SpineRow({ row, photoUrl, onPress }: Props) {
+  // An age divider is a row of its own now, so it can run the full width of the
+  // screen and read as a chapter rule. It never has to dodge a moment, because
+  // nothing else occupies its line.
+  if (row.kind === 'rule') {
+    return (
+      <View style={[styles.row, { height: row.height }]}>
+        <View style={styles.spine} />
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerLabel}>{row.title}</Text>
+          <View style={styles.dividerLine} />
+        </View>
+      </View>
+    );
+  }
+
   const openable = row.momentId !== null;
   return (
-    // The row's height IS the gap that follows it, so the empty stretch below
-    // the head is the elapsed time, and the age rules live inside it.
+    // The row's height IS the distance down to the row below it, so the empty
+    // stretch beneath the head is the elapsed time.
     <View style={[styles.row, { height: row.height }]}>
       <View style={styles.spine} />
-
-      {row.rules.map((rule) => (
-        <View key={rule.label} style={[styles.rule, { top: rule.offset }]}>
-          <View style={styles.ruleLine} />
-          <Text style={styles.ruleLabel}>{rule.label}</Text>
-          <View style={styles.ruleLine} />
-        </View>
-      ))}
-
       <Pressable
         style={styles.head}
         onPress={openable ? onPress : undefined}
@@ -83,17 +86,19 @@ const styles = StyleSheet.create({
     backgroundColor: color.ink,
     opacity: 0.35,
   },
-  // ROW_HEAD, not a local 44: the layout module suppresses rules that would fall
-  // inside this head, so the two must never drift apart.
+  // ROW_HEAD, not a local 44: the layout module reserves exactly this much for a
+  // moment's head, so the two must never drift apart.
   head: { flexDirection: 'row', alignItems: 'center', height: ROW_HEAD, paddingRight: space.lg },
-  dateColumn: { width: DATE_WIDTH, alignItems: 'flex-end' },
   date: {
+    // Wide enough for dd/mm/yyyy on one line — at 64px it wrapped to "22/05/20"
+    // over "25", which read as two different dates.
     fontFamily: font.body,
     fontSize: type.caption,
     color: color.inkMuted,
     // Tabular figures keep the date column from shuffling as the digits change.
     fontVariant: ['tabular-nums'],
   },
+  dateColumn: { width: DATE_WIDTH, alignItems: 'flex-end' },
   // The year is a heading for the run of dates beneath it, not part of any one
   // date, so it sits quieter and smaller than the day it introduces.
   year: {
@@ -118,14 +123,15 @@ const styles = StyleSheet.create({
     color: color.ink,
   },
   thumb: { width: 36, height: 36, borderRadius: radius.sm, backgroundColor: color.paperRaise },
-  rule: {
-    position: 'absolute',
-    left: RULE_LEFT,
-    right: space.lg,
+  // Edge to edge, crossing the spine: a divider marks the whole page, not one
+  // column of it. Sits at the TOP of its row, so the space below it is the time
+  // that then passes.
+  divider: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.sm,
+    height: ROW_HEAD,
   },
-  ruleLine: { flex: 1, height: 1, backgroundColor: color.rule },
-  ruleLabel: { fontFamily: font.medium, fontSize: type.caption, color: color.inkMuted },
+  dividerLine: { flex: 1, height: 1, backgroundColor: color.rule },
+  dividerLabel: { fontFamily: font.medium, fontSize: type.caption, color: color.inkMuted },
 });

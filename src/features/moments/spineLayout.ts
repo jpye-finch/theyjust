@@ -2,41 +2,42 @@
 // makes that survive five years: gaps keep growing, but ever more slowly, so a
 // quiet year does not become thousands of pixels of empty scroll.
 
+import { formatAgeParts } from '../children/age';
+import { formatDayMonth } from '../../lib/date';
+import type { Moment } from './momentQueries';
+import { momentTitle } from './momentText';
+
 const MIN_GAP = 44;
 const K = 22;
+const MS_PER_DAY = 86_400_000;
+const MONTHLY_RULES_THROUGH = 24;
+const OLDEST_RULED_YEAR = 18;
+
+/** Height of a moment's head — the date, dot, title and thumbnail. */
+export const ROW_HEAD = 44;
 
 /** Pixels of spine for a gap of `days`. Floored at one row height. */
 export function gapPx(days: number): number {
   return Math.max(MIN_GAP, Math.sqrt(Math.max(0, days)) * K);
 }
 
-import type { Moment } from './momentQueries';
-import { momentTitle } from './momentText';
-import { formatAgeParts } from '../children/age';
-import { formatDayMonth } from '../../lib/date';
-
-const MS_PER_DAY = 86_400_000;
-
-export type SpineMark = { label: string; offset: number };
-
 export type SpineRow = {
   key: string;
-  kind: 'born' | 'moment';
+  /** `rule` is an age divider — "3 months old" — and carries no moment. */
+  kind: 'born' | 'moment' | 'rule';
   momentId: string | null;
   date: string;
   title: string;
-  /** "18 Jul", or null when this row repeats the date of the row above it —
+  /** "18 Jul", or null on a divider and on a row repeating the date above it —
    *  a cluster then reads as one day carrying several moments, rather than the
    *  same date stamped four times down the column. */
   dateLabel: string | null;
-  /** "2026", shown only on the first row of a year. Repeating it on every row
-   *  buys nothing: the spine is in date order and the rules give the scale. */
+  /** "2026", shown only on the first dated row of a year. */
   yearLabel: string | null;
-  /** This row's own height: the gap that FOLLOWS it. */
+  /** This row's own height: the distance down to the row BELOW it. */
   height: number;
   /** Absolute distance from the top, so getItemLayout stays O(1). */
   offset: number;
-  rules: SpineMark[];
 };
 
 export type SpineInput = {
@@ -54,15 +55,6 @@ function toUtc(iso: string): Date {
 function daysBetween(from: string, to: string): number {
   return Math.round((toUtc(to).getTime() - toUtc(from).getTime()) / MS_PER_DAY);
 }
-
-const CAPTION_MIN_DAYS = 21;
-const CLEARANCE = 16;
-const MONTHLY_RULES_THROUGH = 24;
-const OLDEST_RULED_YEAR = 18;
-
-/** Height of a row's head — the date, dot, title and thumbnail. Anything placed
- *  in the trailing space must clear it, or it draws over the title. */
-export const ROW_HEAD = 44;
 
 /** from + n months, clamping to the last day of the target month. */
 function addMonths(iso: string, n: number): string {
@@ -99,49 +91,15 @@ function ruleDates(origin: string): { label: string; date: string }[] {
   return marks;
 }
 
-// `newer` is the row above, `older` the row below: the spine runs newest-first,
-// so scrolling down goes back in time and a rule's distance from the top of the
-// gap is how far BACK it sits from the row above it.
-function rulesInGap(
-  origin: string,
-  newer: string,
-  older: string,
-  gapDays: number,
-  height: number,
-): SpineMark[] {
-  if (gapDays <= 0) return [];
-  return ruleDates(origin)
-    .filter((mark) => mark.date > older && mark.date <= newer)
-    .map((mark) => ({ label: mark.label, offset: (daysBetween(mark.date, newer) / gapDays) * height }))
-    .filter(
-      (mark) =>
-        // Clear of the head above (which is 44px of type, not a hairline) and of
-        // the row below. The caption needs no clearance: it sits left of the
-        // spine and the rules sit right of it, so they cannot collide however
-        // close their heights. Suppressing on height alone punched holes in an
-        // otherwise regular month sequence — "6, [nothing], 8" reads as a bug.
-        mark.offset >= ROW_HEAD + CLEARANCE && height - mark.offset >= CLEARANCE,
-    );
-}
+type Mark = Pick<SpineRow, 'key' | 'kind' | 'momentId' | 'date' | 'title'>;
 
 export function layoutSpine({ dateOfBirth, dueDate, moments }: SpineInput): SpineRow[] {
   // Newest first, matching the list view: you open the app to see what just
   // happened, and on a five-year spine an oldest-first order would land you at
   // birth with thousands of pixels between you and today. Scrolling down goes
-  // back through time, so Born anchors the BOTTOM — the beginning you scroll
-  // back to rather than the thing you always start on.
+  // back through time, so Born anchors the BOTTOM.
   const ordered = [...moments].sort((a, b) => b.occurred_on.localeCompare(a.occurred_on));
-
-  const entries = [
-    ...ordered.map((m) => ({
-      key: m.id,
-      kind: 'moment' as const,
-      momentId: m.id,
-      date: m.occurred_on,
-      title: momentTitle(m),
-    })),
-    { key: 'born', kind: 'born' as const, momentId: null, date: dateOfBirth, title: 'Born' },
-  ];
+  const newest = ordered.length > 0 ? ordered[0].occurred_on : dateOfBirth;
 
   // The ruler follows corrected age when there is a due date: for a premature
   // baby "1 month old" belongs a month after the date they were due. One origin
@@ -149,31 +107,74 @@ export function layoutSpine({ dateOfBirth, dueDate, moments }: SpineInput): Spin
   // than one that is consistently corrected.
   const rulerOrigin = dueDate ?? dateOfBirth;
 
+  const marks: Mark[] = ordered.map((m) => ({
+    key: m.id,
+    kind: 'moment' as const,
+    momentId: m.id,
+    date: m.occurred_on,
+    title: momentTitle(m),
+  }));
+
+  // Every age divider in range, whether or not anything was logged around it.
+  // These used to be decorations positioned inside the gap between two moments,
+  // which meant they vanished wherever moments were dense — breaking the cadence
+  // exactly where the most was happening. They are rows now: always present,
+  // always legible, and the steady beat of them IS the sense of time passing.
+  for (const rule of ruleDates(rulerOrigin)) {
+    if (rule.date > dateOfBirth && rule.date <= newest) {
+      marks.push({
+        key: `rule-${rule.date}`,
+        kind: 'rule' as const,
+        momentId: null,
+        date: rule.date,
+        title: rule.label,
+      });
+    }
+  }
+
+  // Newest first. On a tie the moment sits above its divider, so a moment logged
+  // on a birthday reads as happening on the day rather than after it.
+  marks.sort((a, b) => {
+    if (a.date !== b.date) return b.date.localeCompare(a.date);
+    return (a.kind === 'rule' ? 1 : 0) - (b.kind === 'rule' ? 1 : 0);
+  });
+
+  marks.push({
+    key: 'born',
+    kind: 'born' as const,
+    momentId: null,
+    date: dateOfBirth,
+    title: 'Born',
+  });
+
   const rows: SpineRow[] = [];
   let offset = 0;
-  for (let i = 0; i < entries.length; i++) {
-    const entry = entries[i];
-    const next = entries[i + 1];
-    // `next` is the row BELOW, which is older. Negative means a moment dated
-    // before the child was born — clamp rather than draw upward through the row
-    // above it.
-    const gapDays = next ? Math.max(0, daysBetween(next.date, entry.date)) : 0;
-    const height = next ? gapPx(gapDays) : MIN_GAP;
+  // The date column is only redrawn when it changes, and dividers carry no date
+  // of their own, so the comparison has to skip them.
+  let lastDatedRow: string | null = null;
 
-    const rules = next ? rulesInGap(rulerOrigin, entry.date, next.date, gapDays, height) : [];
+  for (let i = 0; i < marks.length; i++) {
+    const mark = marks[i];
+    const next = marks[i + 1];
+    // Negative means a moment dated before the child was born — clamp rather
+    // than draw upward through the row above it.
+    const gapDays = next ? Math.max(0, daysBetween(next.date, mark.date)) : 0;
+    const height = next ? gapPx(gapDays) : ROW_HEAD;
 
-    const previous = entries[i - 1];
-    const repeatsDate = previous !== undefined && previous.date === entry.date;
-    const startsNewYear = previous === undefined || previous.date.slice(0, 4) !== entry.date.slice(0, 4);
+    const isDated = mark.kind !== 'rule';
+    const repeatsDate = isDated && lastDatedRow === mark.date;
+    const startsNewYear =
+      isDated && (lastDatedRow === null || lastDatedRow.slice(0, 4) !== mark.date.slice(0, 4));
 
     rows.push({
-      ...entry,
-      dateLabel: repeatsDate ? null : formatDayMonth(entry.date),
-      yearLabel: !repeatsDate && startsNewYear ? entry.date.slice(0, 4) : null,
+      ...mark,
+      dateLabel: isDated && !repeatsDate ? formatDayMonth(mark.date) : null,
+      yearLabel: isDated && !repeatsDate && startsNewYear ? mark.date.slice(0, 4) : null,
       height,
       offset,
-      rules,
     });
+
+    if (isDated) lastDatedRow = mark.date;
     offset += height;
   }
   return rows;
