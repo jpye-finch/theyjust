@@ -10,7 +10,12 @@ type Props = {
 };
 
 const DOT_SIZE = 9;
-const SPINE_LEFT = 74;
+const DATE_WIDTH = 76;
+const SPINE_LEFT = 88;
+// Rules live entirely to the RIGHT of the spine. Full-width rules crossed the
+// date column and the spine itself, and — twelve of them down one long gap —
+// shouted louder than the moments they were meant to measure.
+const RULE_LEFT = SPINE_LEFT + 60;
 
 export function SpineRow({ row, photoUrl, onPress }: Props) {
   const openable = row.momentId !== null;
@@ -38,7 +43,9 @@ export function SpineRow({ row, photoUrl, onPress }: Props) {
         disabled={!openable}
         accessibilityRole={openable ? 'button' : undefined}
       >
-        <Text style={styles.date}>{formatShortDate(row.date)}</Text>
+        <Text style={styles.date} numberOfLines={1}>
+          {formatShortDate(row.date)}
+        </Text>
         <View style={styles.dot} />
         <Text style={styles.title} numberOfLines={2}>
           {row.title}
@@ -72,7 +79,9 @@ const styles = StyleSheet.create({
   // inside this head, so the two must never drift apart.
   head: { flexDirection: 'row', alignItems: 'center', height: ROW_HEAD, paddingRight: space.lg },
   date: {
-    width: 64,
+    // Wide enough for dd/mm/yyyy on one line — at 64px it wrapped to "22/05/20"
+    // over "25", which read as two different dates.
+    width: DATE_WIDTH,
     textAlign: 'right',
     fontFamily: font.body,
     fontSize: type.caption,
@@ -85,7 +94,7 @@ const styles = StyleSheet.create({
     height: DOT_SIZE,
     borderRadius: DOT_SIZE / 2,
     backgroundColor: color.ink,
-    marginLeft: SPINE_LEFT - 64 - DOT_SIZE / 2,
+    marginLeft: SPINE_LEFT - DATE_WIDTH - DOT_SIZE / 2,
   },
   title: {
     flex: 1,
@@ -95,7 +104,14 @@ const styles = StyleSheet.create({
     color: color.ink,
   },
   thumb: { width: 36, height: 36, borderRadius: radius.sm, backgroundColor: color.paperRaise },
-  rule: { position: 'absolute', left: 0, right: space.lg, flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  rule: {
+    position: 'absolute',
+    left: RULE_LEFT,
+    right: space.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+  },
   ruleLine: { flex: 1, height: 1, backgroundColor: color.rule },
   ruleLabel: { fontFamily: font.medium, fontSize: type.caption, color: color.inkMuted },
   caption: {

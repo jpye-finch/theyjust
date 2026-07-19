@@ -111,7 +111,6 @@ function rulesInGap(
   to: string,
   gapDays: number,
   height: number,
-  caption: SpineMark | null,
 ): SpineMark[] {
   if (gapDays <= 0) return [];
   return ruleDates(origin)
@@ -119,11 +118,12 @@ function rulesInGap(
     .map((mark) => ({ label: mark.label, offset: (daysBetween(from, mark.date) / gapDays) * height }))
     .filter(
       (mark) =>
-        // Clear of the head above (which is 44px of type, not a hairline), the
-        // row below, and the caption between them.
-        mark.offset >= ROW_HEAD + CLEARANCE &&
-        height - mark.offset >= CLEARANCE &&
-        (caption === null || Math.abs(mark.offset - caption.offset) >= CLEARANCE),
+        // Clear of the head above (which is 44px of type, not a hairline) and of
+        // the row below. The caption needs no clearance: it sits left of the
+        // spine and the rules sit right of it, so they cannot collide however
+        // close their heights. Suppressing on height alone punched holes in an
+        // otherwise regular month sequence — "6, [nothing], 8" reads as a bug.
+        mark.offset >= ROW_HEAD + CLEARANCE && height - mark.offset >= CLEARANCE,
     );
 }
 
@@ -166,7 +166,7 @@ export function layoutSpine({ dateOfBirth, dueDate, moments }: SpineInput): Spin
         ? { label: formatGap(gapDays), offset: captionOffset(height) }
         : null;
     const rules = next
-      ? rulesInGap(rulerOrigin, entry.date, next.date, gapDays, height, gapCaption)
+      ? rulesInGap(rulerOrigin, entry.date, next.date, gapDays, height)
       : [];
 
     rows.push({ ...entry, height, offset, rules, gapCaption });

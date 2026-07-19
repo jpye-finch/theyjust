@@ -189,15 +189,21 @@ describe('layoutSpine rules and captions', () => {
     expect(threeMonths!.offset / rows[0].height).toBeCloseTo(92 / 123, 2);
   });
 
-  it('drops a rule that would land on the gap caption', () => {
+  it('keeps a rule that shares a height with the gap caption', () => {
     const rows = layoutSpine({
       dateOfBirth: BIRTH,
       dueDate: null,
       moments: [moment('m1', '2025-09-22', 'Four months on')],
     });
-    // Over 123 days the caption sits at 122px and the 2-month rule at 121px.
-    // Two labels a pixel apart is worse than one, so the rule gives way.
-    expect(rows[0].rules.map((r) => r.label)).toEqual(['1 month old', '3 months old']);
+    // Over 123 days the caption sits at 122px and the 2-month rule at 121px, but
+    // they never collide: the caption is drawn left of the spine and the rules
+    // right of it. Dropping the rule on height alone punched a hole in the month
+    // sequence — "1, [nothing], 3" reads as a bug rather than as restraint.
+    expect(rows[0].rules.map((r) => r.label)).toEqual([
+      '1 month old',
+      '2 months old',
+      '3 months old',
+    ]);
   });
 
   it('switches from months to years at two', () => {
