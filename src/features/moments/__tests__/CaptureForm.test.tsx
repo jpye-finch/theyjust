@@ -137,8 +137,8 @@ describe('CaptureForm', () => {
         onSubmit={onSubmit}
       />,
     );
-    await user.clear(screen.getByLabelText('When did it happen?'));
-    await user.type(screen.getByLabelText('When did it happen?'), '2026-02-30');
+    await user.clear(screen.getByLabelText('Date'));
+    await user.type(screen.getByLabelText('Date'), '2026-02-30');
     await user.press(screen.getByText('Save moment'));
     expect(onSubmit).not.toHaveBeenCalled();
     expect(screen.getByText('Enter the date as YYYY-MM-DD')).toBeTruthy();

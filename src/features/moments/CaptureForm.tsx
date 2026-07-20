@@ -88,6 +88,11 @@ export function CaptureForm({
 
   return (
     <View style={styles.container}>
+      {/* Date first. A parent logging something is usually logging it later —
+          that evening, the next morning — so "when" is the question they are
+          already answering in their head, and leaving it below the note meant
+          scrolling back for the one field most likely to need changing. */}
+      <DateField label="Date" value={occurredOn} onChange={setOccurredOn} />
       {presetTitle !== null ? (
         <View style={styles.presetBlock}>
           <Text style={styles.presetTitle}>{presetTitle}</Text>
@@ -107,7 +112,6 @@ export function CaptureForm({
           <TextButton label="Choose from milestones" onPress={() => setPicking(true)} />
         </View>
       )}
-      <DateField label="When did it happen?" value={occurredOn} onChange={setOccurredOn} />
       <Field
         label="Note"
         placeholder="Add a little note (optional)"
