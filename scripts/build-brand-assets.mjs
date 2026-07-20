@@ -14,12 +14,18 @@ const images = join(root, 'assets', 'images');
 // required for the iOS icon, which the App Store rejects if it has alpha.
 const TARGETS = [
   { source: 'icon.svg', output: 'icon.png', opaque: '#833045' },
+  { source: 'android-foreground.svg', output: 'android-icon-foreground.png' },
+  { source: 'android-monochrome.svg', output: 'android-icon-monochrome.png' },
 ];
 
 function build({ source, output, opaque, resize }) {
   const args = ['-background', opaque ?? 'none', join(brand, source)];
   if (resize) args.push('-resize', `${resize}x${resize}`);
   if (opaque) args.push('-flatten', '-alpha', 'off', '-define', 'png:color-type=2');
+  // Transparent outputs: ImageMagick may optimise these down to a palette
+  // (colour type 3) or grayscale+alpha (colour type 4) PNG, which pngReader.ts
+  // deliberately rejects. Force true RGBA so it always reads as colour type 6.
+  else args.push('-define', 'png:color-type=6');
   args.push('-colorspace', 'sRGB', '-depth', '8', join(images, output));
 
   execFileSync('magick', args, { stdio: 'inherit' });

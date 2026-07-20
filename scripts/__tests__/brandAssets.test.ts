@@ -53,3 +53,64 @@ describe('icon.png', () => {
     expectColor(png.pixel(512, 735), DAMSON);
   });
 });
+
+describe('android-icon-foreground.png', () => {
+  const png = load('android-icon-foreground.png');
+
+  it('is 432x432 with alpha', () => {
+    expect(png.width).toBe(432);
+    expect(png.height).toBe(432);
+    expect(png.hasAlpha).toBe(true);
+  });
+
+  it('leaves the canvas transparent — backgroundColor supplies the field', () => {
+    expect(png.pixel(10, 10)[3]).toBe(0);
+    expect(png.pixel(421, 421)[3]).toBe(0);
+  });
+
+  it('paints the paper ribbon and the damson dot', () => {
+    expectColor(png.pixel(216, 130), PAPER);
+    expectColor(png.pixel(216, 216), DAMSON);
+  });
+
+  // OEM masks vary, so every opaque pixel must sit inside the 66dp safe
+  // circle: radius 132 about (216,216).
+  it('keeps every opaque pixel inside the 264px safe circle', () => {
+    const offenders: string[] = [];
+    for (let y = 0; y < 432; y += 1) {
+      for (let x = 0; x < 432; x += 1) {
+        if (png.pixel(x, y)[3] === 0) continue;
+        if (Math.hypot(x - 216, y - 216) > 132) offenders.push(`${x},${y}`);
+      }
+    }
+    expect(offenders.slice(0, 5)).toEqual([]);
+  });
+});
+
+describe('android-icon-monochrome.png', () => {
+  const png = load('android-icon-monochrome.png');
+
+  it('is 432x432 with alpha', () => {
+    expect(png.width).toBe(432);
+    expect(png.height).toBe(432);
+    expect(png.hasAlpha).toBe(true);
+  });
+
+  // The system tints this layer, so only the silhouette survives. Every opaque
+  // pixel must be white — a stray damson dot would tint to a hole in the shape.
+  it('contains only white and transparent pixels', () => {
+    const offenders: string[] = [];
+    for (let y = 0; y < 432; y += 4) {
+      for (let x = 0; x < 432; x += 4) {
+        const [r, g, b, a] = png.pixel(x, y);
+        if (a === 0) continue;
+        if (a === 255 && (r !== 255 || g !== 255 || b !== 255)) offenders.push(`${x},${y}`);
+      }
+    }
+    expect(offenders.slice(0, 5)).toEqual([]);
+  });
+
+  it('has no dot knocked out — the ribbon is solid', () => {
+    expect(png.pixel(216, 216)[3]).toBe(255);
+  });
+});

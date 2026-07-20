@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="432" height="432" viewBox="0 0 432 432">
+  <!-- Silhouette only: the system discards colour and tints this flat. The dot
+       is dropped rather than knocked through, so this matches the notification
+       icon exactly — one shape across both monochrome surfaces. Geometry is
+       identical to android-foreground.svg. -->
+  <path fill="#FFFFFF" d="M168 98 L264 98 L264 335 L216 298 L168 335 Z"/>
+</svg>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="432" height="432" viewBox="0 0 432 432">
+  <!-- The mark scaled to 96x237 and centred in the 66dp safe circle (radius 132
+       about 216,216). The scale is set by the bounding box's half-diagonal:
+       hypot(48,118) = 127.4, leaving ~4px of margin for antialiasing. No bleed:
+       OEM masks vary far more than Apple's, and a ribbon running off the top
+       gets cut at an arbitrary angle. -->
+  <path fill="#F9F6F1" d="M168 98 L264 98 L264 335 L216 298 L168 335 Z"/>
+  <circle cx="216" cy="216" r="24" fill="#833045"/>
+</svg>
