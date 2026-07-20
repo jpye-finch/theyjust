@@ -57,7 +57,7 @@ export default function TimelineScreen() {
         <Text style={styles.emptyTitle}>Their story starts here</Text>
         <Text style={styles.emptyBody}>Add your little one, then capture their firsts.</Text>
         <View style={styles.emptyButton}>
-          <PrimaryButton label="Add your child" onPress={() => router.push('/family')} />
+          <PrimaryButton label="Add your child" onPress={() => router.push('/child')} />
         </View>
       </View>
     );
@@ -68,7 +68,10 @@ export default function TimelineScreen() {
       childrenList={children}
       selected={selected}
       onSelectChild={select}
-      onAddChild={() => router.push('/family')}
+      // Straight to the form. Sending them to the Family tab only put the same
+      // decision one more tap away — and once the form became a sheet with its
+      // own route, there was nothing left on that tab to land on.
+      onAddChild={() => router.push('/child')}
       view={view}
       onSelectView={setView}
       onCapture={() => router.push('/capture')}

@@ -31,7 +31,7 @@ export default function MilestonesScreen() {
         <Text style={styles.emptyTitle}>Who are we celebrating?</Text>
         <Text style={styles.emptyBody}>Add your little one to start their story.</Text>
         <View style={styles.emptyButton}>
-          <PrimaryButton label="Add your child" onPress={() => router.push('/family')} />
+          <PrimaryButton label="Add your child" onPress={() => router.push('/child')} />
         </View>
       </View>
     );
@@ -55,8 +55,7 @@ export default function MilestonesScreen() {
             childrenList={children}
             selected={selected}
             onSelect={select}
-            onAddChild={() => router.push('/family')}
-
+            onAddChild={() => router.push('/child')}
           />
         </View>
       }
