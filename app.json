@@ -51,6 +51,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "eb6111de-75b1-40dc-ba88-047ee2c57c3b"
+      }
+    },
+    "owner": "firsts-milestones"
   }
 }
