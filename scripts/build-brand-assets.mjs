@@ -17,6 +17,8 @@ const TARGETS = [
   { source: 'android-foreground.svg', output: 'android-icon-foreground.png' },
   { source: 'android-monochrome.svg', output: 'android-icon-monochrome.png' },
   { source: 'notification.svg', output: 'notification-icon.png' },
+  { source: 'splash.svg', output: 'splash-icon.png' },
+  { source: 'icon.svg', output: 'favicon.png', resize: 196 },
 ];
 
 function build({ source, output, opaque, resize }) {

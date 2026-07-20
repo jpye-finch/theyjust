@@ -148,3 +148,40 @@ describe('notification-icon.png', () => {
     expect(png.pixel(47, 40)[3]).toBe(255);
   });
 });
+
+describe('splash-icon.png', () => {
+  const png = load('splash-icon.png');
+
+  it('is 1024x1024 with alpha', () => {
+    expect(png.width).toBe(1024);
+    expect(png.height).toBe(1024);
+    expect(png.hasAlpha).toBe(true);
+  });
+
+  it('drops the field so the mark sits on the paper background', () => {
+    expect(png.pixel(40, 40)[3]).toBe(0);
+  });
+
+  it('inverts: the ribbon is damson', () => {
+    expectColor(png.pixel(512, 80), DAMSON);
+  });
+
+  // The dot must be a hole, not a fill — damson on damson would be invisible,
+  // so the paper background has to read through it.
+  it('knocks the dot through to transparency', () => {
+    expect(png.pixel(512, 372)[3]).toBe(0);
+  });
+});
+
+describe('favicon.png', () => {
+  const png = load('favicon.png');
+
+  it('is 196x196', () => {
+    expect(png.width).toBe(196);
+    expect(png.height).toBe(196);
+  });
+
+  it('carries the damson field', () => {
+    expectColor(png.pixel(8, 8), DAMSON);
+  });
+});

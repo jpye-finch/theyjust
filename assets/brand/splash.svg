@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Inverted: no field, damson ribbon, and the dot knocked through to
+       transparency so the paper background reads through it. Rendered at
+       imageWidth 240, which puts the ribbon at ~70pt. -->
+  <path fill="#833045" fill-rule="evenodd"
+        d="M362 0 L662 0 L662 740 L512 624 L362 740 Z
+           M512 298 A74 74 0 1 1 512 446 A74 74 0 1 1 512 298 Z"/>
+</svg>
