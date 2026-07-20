@@ -28,6 +28,10 @@ export default function SignUp() {
   };
 
   const continueWithApple = async () => {
+    // Apple's sheet takes a moment to animate in and the button gives no
+    // feedback in that gap, so a double-tap here would fire two concurrent
+    // native signInAsync() requests. Bail out if one is already in flight.
+    if (busy) return;
     setBusy(true);
     setError(null);
     const result = await signInWithApple();
