@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import { radius } from '@/theme/tokens';
 import { AppleSignInButton } from '../AppleSignInButton';
 
 jest.mock('expo-apple-authentication', () => ({
@@ -17,7 +18,15 @@ describe('AppleSignInButton', () => {
   it('offers the button where Apple sign-in works', async () => {
     mockedAvailable.mockResolvedValue(true);
     await render(<AppleSignInButton onPress={jest.fn()} />);
-    expect(await screen.findByTestId('apple-sign-in')).toBeTruthy();
+    const button = await screen.findByTestId('apple-sign-in');
+    expect(button).toBeTruthy();
+    // "Continue", not "Sign in": one tap both creates the account and returns
+    // to it, and the parent should not have to know which is which.
+    expect(button.props.buttonType).toBe(AppleAuthentication.AppleAuthenticationButtonType.CONTINUE);
+    // Black on warm paper — WHITE would vanish into the page.
+    expect(button.props.buttonStyle).toBe(AppleAuthentication.AppleAuthenticationButtonStyle.BLACK);
+    // Matched to PrimaryButton so the two sit together.
+    expect(button.props.cornerRadius).toBe(radius.md);
   });
 
   it('renders nothing where it does not', async () => {
