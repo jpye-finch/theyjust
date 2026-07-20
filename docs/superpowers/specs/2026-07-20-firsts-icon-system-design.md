@@ -69,13 +69,23 @@ alpha channel is written at all.
 
 ### 3.2 Android foreground — `assets/images/android-icon-foreground.png`
 **432×432** (4× the 108dp canvas). The safe zone is a 264px circle centred at
-`(216,216)`; the mark is scaled to `1/3` of master and centred inside it, with
+`(216,216)`; the mark is scaled to **96×237** and centred inside it, with
 **no bleed** — OEM masks vary far more than Apple's, and a ribbon running off the
 top gets cut at an arbitrary angle by a circular mask.
 
-- Ribbon: `paper #F9F6F1`, path `M166,92 L266,92 L266,339 L216,300 L166,339 Z`
-- Dot: `damson #833045`, `cx 216`, `cy 216`, `r 25`
+- Ribbon: `paper #F9F6F1`, path `M168,98 L264,98 L264,335 L216,298 L168,335 Z`
+- Dot: `damson #833045`, `cx 216`, `cy 216`, `r 24`
 - Canvas: **transparent** (`adaptiveIcon.backgroundColor` supplies the field)
+
+The scale is set by the bounding box's half-diagonal, which must fit inside the
+safe radius: `hypot(48,118) = 127.4`, leaving ~4px of margin for antialiasing.
+
+> **Correction.** This section originally specified a `1/3` scale — ribbon
+> `M166,92 …` with `r 25`. That geometry is wrong and was never shipped: its
+> corners sit 132.8–133.7px from centre, **outside** the 132px safe circle this same
+> document mandates in §7.5, so it would have failed its own guarantee and been
+> clipped by a circular OEM mask. Caught during plan review and corrected before
+> implementation. Do not "restore" the original numbers.
 
 ### 3.3 Android background — none
 `android.adaptiveIcon.backgroundColor` is set to `#833045` and
