@@ -14,11 +14,11 @@ const base = {
 };
 
 describe('MomentCard', () => {
-  it('shows the celebration title, age at the time, and note', async () => {
+  it('shows the milestone title, age at the time, and note', async () => {
     await render(
       <MomentCard moment={base} childDateOfBirth="2026-01-15" loggedByYou photoUrl={null} />,
     );
-    expect(screen.getByText('They just rolled over!')).toBeTruthy();
+    expect(screen.getByText('Rolled over')).toBeTruthy();
     // Date and age render as one meta line; getByText matches a Text's full content.
     expect(screen.getByText('29 May 2026 · 4 months, 2 weeks')).toBeTruthy();
     expect(screen.getByText('flipped right over')).toBeTruthy();

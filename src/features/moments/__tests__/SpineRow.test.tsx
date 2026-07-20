@@ -7,7 +7,7 @@ const row: Row = {
   kind: 'moment',
   momentId: 'm1',
   date: '2026-07-08',
-  title: 'They just crawled!',
+  title: 'Crawled',
   height: 120,
   offset: 0,
   dateLabel: '8 Jul',
@@ -19,7 +19,7 @@ describe('SpineRow', () => {
     await render(<SpineRow row={row} photoUrl={null} onPress={jest.fn()} />);
     expect(screen.getByText('8 Jul')).toBeTruthy();
     expect(screen.getByText('2026')).toBeTruthy();
-    expect(screen.getByText('They just crawled!')).toBeTruthy();
+    expect(screen.getByText('Crawled')).toBeTruthy();
   });
 
   it('shows a thumbnail only when the moment has one', async () => {
@@ -36,7 +36,7 @@ describe('SpineRow', () => {
     const onPress = jest.fn();
     const user = userEvent.setup();
     await render(<SpineRow row={row} photoUrl={null} onPress={onPress} />);
-    await user.press(screen.getByText('They just crawled!'));
+    await user.press(screen.getByText('Crawled'));
     expect(onPress).toHaveBeenCalled();
   });
 
@@ -76,7 +76,7 @@ describe('SpineRow', () => {
     expect(screen.queryByText('8 Jul')).toBeNull();
     expect(screen.queryByText('2026')).toBeNull();
     // The title still renders — only the repeated date is withheld.
-    expect(screen.getByText('They just crawled!')).toBeTruthy();
+    expect(screen.getByText('Crawled')).toBeTruthy();
   });
 
   it('does not offer the Born anchor as something to open', async () => {

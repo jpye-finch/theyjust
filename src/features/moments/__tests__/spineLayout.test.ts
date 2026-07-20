@@ -96,10 +96,10 @@ describe('layoutSpine rows', () => {
     expect(rows[1].offset).toBe(44);
   });
 
-  it('resolves the celebration title for a catalogue milestone', () => {
+  it('resolves the recorded title for a catalogue milestone', () => {
     const milestone: Moment = { ...moment('m1', '2025-11-01', ''), milestone_id: 'crawled', custom_title: null };
     const rows = layoutSpine({ dateOfBirth: BIRTH, dueDate: null, moments: [milestone] });
-    expect(rows[0].title).toBe('They just crawled!');
+    expect(rows[0].title).toBe('Crawled');
   });
 
   it('carries the moment id so a row can open its moment', () => {

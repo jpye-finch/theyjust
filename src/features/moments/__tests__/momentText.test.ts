@@ -1,10 +1,8 @@
 import { momentTitle } from '../momentText';
 
 describe('momentTitle', () => {
-  it('uses the milestone celebration for a catalogue moment', () => {
-    expect(momentTitle({ milestone_id: 'rolled_over', custom_title: null })).toBe(
-      'They just rolled over!',
-    );
+  it('uses the recorded milestone title for a catalogue moment', () => {
+    expect(momentTitle({ milestone_id: 'rolled_over', custom_title: null })).toBe('Rolled over');
   });
 
   it('uses the custom title verbatim for a custom moment', () => {

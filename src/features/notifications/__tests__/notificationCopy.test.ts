@@ -34,11 +34,10 @@ describe('lookBackTitle', () => {
 
 describe('lookBackBody', () => {
   it('keeps the app’s own wording for a catalogue milestone', () => {
-    // Building a sentence around the name gave "Wren took their first steps",
-    // because the catalogue's verb phrases are written to follow "They just …".
-    // With the name in the title, the phrase can stay as it was written.
+    // The body says exactly what the timeline says, so tapping the notification
+    // lands on the row the parent just read. The name lives in the title.
     const rolled = moment({ milestone_id: 'rolled_over', custom_title: null });
-    expect(lookBackBody(rolled)).toBe('They just rolled over!');
+    expect(lookBackBody(rolled)).toBe('Rolled over');
   });
 
   it('leaves a custom moment’s words completely alone', () => {

@@ -23,13 +23,13 @@ const moment = {
 };
 
 describe('buildExportBundle', () => {
-  it('nests moments under their child and resolves the celebration title', () => {
+  it('nests moments under their child and resolves the milestone title', () => {
     const bundle = buildExportBundle('2026-07-18T09:00:00.000Z', [child], [moment]);
 
     expect(bundle.exportedAt).toBe('2026-07-18T09:00:00.000Z');
     expect(bundle.children).toHaveLength(1);
     expect(bundle.children[0].name).toBe('Wren');
-    expect(bundle.children[0].moments[0].title).toBe('They just rolled over!');
+    expect(bundle.children[0].moments[0].title).toBe('Rolled over');
     expect(bundle.children[0].moments[0].occurredOn).toBe('2026-05-29');
     expect(bundle.children[0].moments[0].note).toBe('flipped right over');
   });
