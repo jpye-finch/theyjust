@@ -1,9 +1,10 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useState } from 'react';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Modal, Platform, Pressable, Text, View } from 'react-native';
 import { formatDisplayDate, toIsoDate } from '@/lib/date';
 import { color } from '@/theme/tokens';
 import { dateFieldStyles as styles } from './dateFieldStyles';
+import { TextButton } from './TextButton';
 
 type Props = {
   label: string;
@@ -19,48 +20,78 @@ const asDate = (value: string) => (value ? new Date(`${value}T00:00:00`) : new D
 // on the way in and out; only the display is "18 July 2026".
 export function DateField({ label, value, onChange }: Props) {
   const [open, setOpen] = useState(false);
+  // Held while the modal is up so the parent only hears a real choice.
+  const [draft, setDraft] = useState<string | null>(null);
 
-  // iOS: the system control IS the field. We used to draw our own row and then
-  // unfold Apple's 'inline' calendar beneath it — a whole month grid pushing the
-  // form open, in system blue, with a Done button we had to supply ourselves.
-  // 'compact' is what iOS forms actually do: a date you tap, and Apple presents
-  // its calendar in a popover above the page. It brings its own chrome, so the
-  // underline comes off here rather than fighting it.
+  // iOS: once a date exists, the system control IS the field — tap it and Apple
+  // presents its calendar in a popover, which is what iOS forms actually do.
   if (Platform.OS === 'ios') {
-    return (
-      <View style={styles.wrap}>
-        <Text style={styles.label}>{label}</Text>
-        {value ? (
+    if (value) {
+      return (
+        <View style={styles.wrap}>
+          <Text style={styles.label}>{label}</Text>
           <View style={styles.nativeRow}>
             <DateTimePicker
               value={asDate(value)}
               mode="date"
               display="compact"
               // The compact control centres itself in whatever width it is
-              // handed, which floated it to the middle of the sheet. It has to
-              // opt out itself — alignItems on the parent is not enough.
+              // handed; alignItems on the parent cannot override that.
               style={styles.nativePicker}
-              // Damson, so the popover's selection is ours and not system blue.
               accentColor={color.damson}
               onChange={(_event, selected) => {
                 if (selected) onChange(toIsoDate(selected));
               }}
             />
           </View>
-        ) : (
-          // The compact control cannot show "nothing chosen" — it always renders
-          // some date. So an unset field keeps our own placeholder, and the first
-          // tap seeds today for the parent to adjust. Only a new child's date of
-          // birth starts empty; capture always opens on today.
-          <Pressable
-            style={styles.input}
-            onPress={() => onChange(toIsoDate(new Date()))}
-            accessibilityRole="button"
-            accessibilityLabel={label}
-          >
-            <Text style={styles.placeholder}>Choose a date</Text>
-          </Pressable>
-        )}
+        </View>
+      );
+    }
+
+    // Empty is its own state, and it must stay empty until the parent actually
+    // picks. Seeding today on the first tap looked like an answer they had
+    // given: a due date of "today" for a premature baby passes validation and
+    // then quietly feeds a wrong corrected age into every milestone. An unset
+    // date is caught; a plausible wrong one is not.
+    return (
+      <View style={styles.wrap}>
+        <Text style={styles.label}>{label}</Text>
+        <Pressable
+          style={styles.input}
+          onPress={() => {
+            setDraft(null);
+            setOpen(true);
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={label}
+        >
+          <Text style={styles.placeholder}>Choose a date</Text>
+        </Pressable>
+        <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
+          <Pressable style={styles.backdrop} onPress={() => setOpen(false)} />
+          <View style={styles.panel}>
+            <View style={styles.panelHead}>
+              <Text style={styles.label}>{label}</Text>
+              <TextButton
+                label="Done"
+                onPress={() => {
+                  // No spin, no date: closing without choosing leaves it unset.
+                  if (draft) onChange(draft);
+                  setOpen(false);
+                }}
+              />
+            </View>
+            <DateTimePicker
+              value={asDate(draft ?? '')}
+              mode="date"
+              display="inline"
+              accentColor={color.damson}
+              onChange={(_event, selected) => {
+                if (selected) setDraft(toIsoDate(selected));
+              }}
+            />
+          </View>
+        </Modal>
       </View>
     );
   }

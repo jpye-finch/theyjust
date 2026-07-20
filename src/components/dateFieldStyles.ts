@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { color, font, space, type } from '@/theme/tokens';
+import { color, font, radius, space, type } from '@/theme/tokens';
 
 // Shared by DateField.tsx (native) and DateField.web.tsx so the two platform
 // implementations cannot drift apart visually. Matches Field's book-form look:
@@ -24,6 +24,18 @@ export const dateFieldStyles = StyleSheet.create({
   // The control's own pill carries leading padding, so it starts a few points
   // right of the labels above it. The offset pulls it back to the same margin.
   nativePicker: { alignSelf: 'flex-start', marginLeft: -space.xs },
+  // The unset field opens the picker over the page rather than unfolding a
+  // month grid inside the form.
+  backdrop: { flex: 1, backgroundColor: 'rgba(42,32,27,0.28)' },
+  panel: {
+    backgroundColor: color.paper,
+    paddingHorizontal: space.lg,
+    paddingTop: space.md,
+    paddingBottom: space.xl,
+    borderTopLeftRadius: radius.md,
+    borderTopRightRadius: radius.md,
+  },
+  panelHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   value: { fontFamily: font.body, fontSize: type.body, color: color.ink },
   placeholder: { fontFamily: font.body, fontSize: type.body, color: color.inkMuted },
 });
