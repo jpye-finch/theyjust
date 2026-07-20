@@ -3,7 +3,7 @@
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { readPng } from '../pngReader';
+import { readPng, type Png } from '../pngReader';
 
 const IMAGES = join(__dirname, '..', '..', 'assets', 'images');
 const DAMSON = [0x83, 0x30, 0x45];
@@ -20,7 +20,10 @@ function expectColor(actual: number[], expected: number[]) {
 }
 
 describe('icon.png', () => {
-  const png = load('icon.png');
+  let png: Png;
+  beforeAll(() => {
+    png = load('icon.png');
+  });
 
   it('is 1024x1024', () => {
     expect(png.width).toBe(1024);
@@ -55,7 +58,10 @@ describe('icon.png', () => {
 });
 
 describe('android-icon-foreground.png', () => {
-  const png = load('android-icon-foreground.png');
+  let png: Png;
+  beforeAll(() => {
+    png = load('android-icon-foreground.png');
+  });
 
   it('is 432x432 with alpha', () => {
     expect(png.width).toBe(432);
@@ -88,7 +94,10 @@ describe('android-icon-foreground.png', () => {
 });
 
 describe('android-icon-monochrome.png', () => {
-  const png = load('android-icon-monochrome.png');
+  let png: Png;
+  beforeAll(() => {
+    png = load('android-icon-monochrome.png');
+  });
 
   it('is 432x432 with alpha', () => {
     expect(png.width).toBe(432);
@@ -116,7 +125,10 @@ describe('android-icon-monochrome.png', () => {
 });
 
 describe('notification-icon.png', () => {
-  const png = load('notification-icon.png');
+  let png: Png;
+  beforeAll(() => {
+    png = load('notification-icon.png');
+  });
 
   // expo-notifications requires "96x96 all-white png with transparency".
   it('is 96x96 with alpha', () => {
@@ -150,7 +162,10 @@ describe('notification-icon.png', () => {
 });
 
 describe('splash-icon.png', () => {
-  const png = load('splash-icon.png');
+  let png: Png;
+  beforeAll(() => {
+    png = load('splash-icon.png');
+  });
 
   it('is 1024x1024 with alpha', () => {
     expect(png.width).toBe(1024);
@@ -174,7 +189,10 @@ describe('splash-icon.png', () => {
 });
 
 describe('favicon.png', () => {
-  const png = load('favicon.png');
+  let png: Png;
+  beforeAll(() => {
+    png = load('favicon.png');
+  });
 
   it('is 196x196', () => {
     expect(png.width).toBe(196);
@@ -187,9 +205,10 @@ describe('favicon.png', () => {
 });
 
 describe('app.json', () => {
-  const config = JSON.parse(
-    readFileSync(join(__dirname, '..', '..', 'app.json'), 'utf8'),
-  ).expo;
+  let config: ReturnType<typeof JSON.parse>;
+  beforeAll(() => {
+    config = JSON.parse(readFileSync(join(__dirname, '..', '..', 'app.json'), 'utf8')).expo;
+  });
 
   const plugin = (name: string) =>
     config.plugins.find((p: unknown) => Array.isArray(p) && p[0] === name)?.[1];
@@ -227,5 +246,20 @@ describe('app.json', () => {
     for (const p of paths) {
       expect(existsSync(join(root, p))).toBe(true);
     }
+  });
+
+  // These three are checked for identity, not just existence: foregroundImage
+  // and monochromeImage are adjacent near-identical keys, and swapping them
+  // leaves both files on disk, so an existence check alone would pass while
+  // Android rendered the wrong layer.
+  it('points each android layer and the favicon at the right file', () => {
+    expect(config.android.adaptiveIcon.foregroundImage).toBe(
+      './assets/images/android-icon-foreground.png',
+    );
+    expect(config.android.adaptiveIcon.monochromeImage).toBe(
+      './assets/images/android-icon-monochrome.png',
+    );
+    expect(config.web.favicon).toBe('./assets/images/favicon.png');
+    expect(plugin('expo-splash-screen').image).toBe('./assets/images/splash-icon.png');
   });
 });
