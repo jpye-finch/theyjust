@@ -1,6 +1,6 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useEffect, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import { radius, space } from '@/theme/tokens';
 
 type Props = { onPress: () => void };
@@ -11,11 +11,14 @@ type Props = { onPress: () => void };
 // system control is exempt from our chrome rules. cornerRadius is the one part
 // we own, matched to PrimaryButton so the two sit together.
 //
-// Availability is asked rather than assumed: it is false on Android, on web,
-// and on iOS below 13. Rendering a button that cannot work and cannot say why
-// is worse than rendering nothing.
+// Seeded true on iOS: IPHONEOS_DEPLOYMENT_TARGET is 16.4, so the "unavailable
+// on this iOS" case cannot occur on any device this ships to, and starting
+// from false only pushed the vertically-centred form down a beat later. The
+// async isAvailableAsync() check below still runs and stays the real
+// authority — it is what turns the button off on Android and web, and it
+// would still catch a genuine iOS regression.
 export function AppleSignInButton({ onPress }: Props) {
-  const [available, setAvailable] = useState(false);
+  const [available, setAvailable] = useState(Platform.OS === 'ios');
 
   useEffect(() => {
     let cancelled = false;
