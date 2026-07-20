@@ -18,6 +18,12 @@ export const dateFieldStyles = StyleSheet.create({
     borderBottomWidth: 1.5,
     borderBottomColor: color.rule,
   },
+  // iOS's compact picker draws its own control, so it sits on a bare row: the
+  // underline underneath it read as a second, empty field.
+  nativeRow: { alignItems: 'flex-start', paddingVertical: space.xs },
+  // The control's own pill carries leading padding, so it starts a few points
+  // right of the labels above it. The offset pulls it back to the same margin.
+  nativePicker: { alignSelf: 'flex-start', marginLeft: -space.xs },
   value: { fontFamily: font.body, fontSize: type.body, color: color.ink },
   placeholder: { fontFamily: font.body, fontSize: type.body, color: color.inkMuted },
 });
