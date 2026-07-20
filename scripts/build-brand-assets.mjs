@@ -29,7 +29,10 @@ function build({ source, output, opaque, resize }) {
   // (colour type 3) or grayscale+alpha (colour type 4) PNG, which pngReader.ts
   // deliberately rejects. Force true RGBA so it always reads as colour type 6.
   else args.push('-define', 'png:color-type=6');
-  args.push('-colorspace', 'sRGB', '-depth', '8', join(images, output));
+  // -strip drops metadata, including the creation timestamp ImageMagick
+  // embeds by default — without it, every rebuild produces byte-different
+  // PNGs (and a dirty git tree) even when no pixel actually changed.
+  args.push('-colorspace', 'sRGB', '-depth', '8', '-strip', join(images, output));
 
   execFileSync('magick', args, { stdio: 'inherit' });
   console.log(`  ${source} -> assets/images/${output}`);
