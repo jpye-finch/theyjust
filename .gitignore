@@ -43,3 +43,6 @@ example
 /android
 
 .env
+
+# Every env file, not just .env — .env.production carries the hosted keys.
+.env*
