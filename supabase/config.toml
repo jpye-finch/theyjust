@@ -320,8 +320,13 @@ max_frequency = "5s"
 # `discord`, `facebook`, `github`, `gitlab`, `google`, `keycloak`, `linkedin_oidc`, `notion`, `twitch`,
 # `twitter`, `x`, `slack`, `spotify`, `workos`, `zoom`.
 [auth.external.apple]
-enabled = false
-client_id = ""
+enabled = true
+# The BUNDLE identifier, not the numeric App Store Connect id. Native sign-in
+# sends Apple's identity token straight to signInWithIdToken, and its `aud`
+# claim is the bundle id — so this is what the token is checked against.
+# `secret` below stays unset on purpose: a Services ID and .p8 key are the
+# OAuth/web path only, which a native-only app never takes.
+client_id = "com.firsts.app"
 # DO NOT commit your OAuth provider secret to git. Use environment variable substitution instead:
 secret = "env(SUPABASE_AUTH_EXTERNAL_APPLE_SECRET)"
 # Overrides the default auth callback URL derived from auth.external_url.
