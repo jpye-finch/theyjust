@@ -46,7 +46,7 @@ describe('CaptureForm', () => {
         onSubmit={onSubmit}
       />,
     );
-    expect(screen.getByText('They just rolled over!')).toBeTruthy();
+    expect(screen.getByText('Rolled over')).toBeTruthy();
     await user.type(screen.getByPlaceholderText('Add a little note (optional)'), 'flipped over');
     await user.press(screen.getByText('Save moment'));
     expect(onSubmit).toHaveBeenCalledWith({
@@ -99,7 +99,7 @@ describe('CaptureForm', () => {
     await user.press(screen.getByLabelText('Rolled over'));
 
     // The celebration wording replaces the free-text field once chosen.
-    expect(screen.getByText('They just rolled over!')).toBeTruthy();
+    expect(screen.getByText('Rolled over')).toBeTruthy();
     expect(screen.queryByPlaceholderText('What happened?')).toBeNull();
 
     await user.press(screen.getByText('Save moment'));

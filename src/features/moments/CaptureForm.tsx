@@ -7,7 +7,7 @@ import { PrimaryButton } from '@/components/PrimaryButton';
 import { TextButton } from '@/components/TextButton';
 import { color, font, radius, space, type } from '@/theme/tokens';
 import { isRealDate } from '../../lib/date';
-import { CATALOGUE, celebrationText } from '../milestones/catalogue';
+import { CATALOGUE } from '../milestones/catalogue';
 import { MilestonePicker } from './MilestonePicker';
 
 /** A photo already saved against the moment being edited. `url` is signed, and
@@ -65,7 +65,11 @@ export function CaptureForm({
   // A moment is EITHER a catalogue milestone (celebration voice, and it stamps
   // the Milestones screen) or the parent's own words — never both.
   const entry = milestoneId ? CATALOGUE.find((e) => e.id === milestoneId) : undefined;
-  const presetTitle = entry ? celebrationText(entry) : null;
+  // The catalogue's own title, which is exactly what the timeline will show
+  // once this is saved. Not celebrationText: naming it one way here and
+  // another way there made a parent check whether they had picked the right
+  // thing.
+  const presetTitle = entry ? entry.title : null;
 
   const handleSubmit = () => {
     const trimmedTitle = customTitle.trim();
@@ -93,9 +97,18 @@ export function CaptureForm({
           already answering in their head, and leaving it below the note meant
           scrolling back for the one field most likely to need changing. */}
       <DateField label="Date" value={occurredOn} onChange={setOccurredOn} />
+      {/* A chosen milestone is an answer to the same question the custom field
+          asks, so it wears the same clothes: the "Moment" label over an
+          underlined value. It used to arrive as a Fraunces hero shouting "They
+          just pulled up to stand!" — a second, louder name for the thing the
+          timeline would go on to call "Pulled up to stand", in a heading that
+          out-shouted the form it sat in. */}
       {presetTitle !== null ? (
         <View style={styles.presetBlock}>
-          <Text style={styles.presetTitle}>{presetTitle}</Text>
+          <Text style={styles.presetLabel}>Moment</Text>
+          <View style={styles.presetValueRow}>
+            <Text style={styles.presetValue}>{presetTitle}</Text>
+          </View>
           <View style={styles.presetActions}>
             <TextButton label="Change milestone" onPress={() => setPicking(true)} />
             <TextButton label="Write my own" onPress={() => setMilestoneId(null)} tone="muted" />
@@ -189,7 +202,21 @@ const styles = StyleSheet.create({
   presetBlock: { gap: space.sm },
   presetActions: { flexDirection: 'row', gap: space.lg },
   customBlock: { gap: space.xs },
-  presetTitle: { fontFamily: font.displayBold, fontSize: type.display, color: color.ink, letterSpacing: -0.3 },
+  // Deliberately the same label/value/underline as Field, so a chosen
+  // milestone and a typed one read as the same kind of answer.
+  presetLabel: {
+    fontFamily: font.medium,
+    fontSize: type.caption,
+    color: color.inkMuted,
+    letterSpacing: 0.3,
+  },
+  presetValueRow: {
+    justifyContent: 'center',
+    paddingVertical: space.sm,
+    borderBottomWidth: 1.5,
+    borderBottomColor: color.rule,
+  },
+  presetValue: { fontFamily: font.body, fontSize: type.body, color: color.ink },
   photoAdd: {
     flexDirection: 'row',
     gap: space.sm,
