@@ -68,4 +68,19 @@ describe('signInWithApple', () => {
       message: 'Provider not enabled',
     });
   });
+
+  it('survives Supabase throwing rather than returning an error', async () => {
+    // GoTrueClient.signInWithIdToken only converts AuthErrors into a returned
+    // { error }; anything else — e.g. SecureStore rejecting during the
+    // post-exchange _saveSession() — it rethrows. Without its own try/catch
+    // that rejection would escape signInWithApple(), breaking the "never
+    // throws" contract on the one path every real sign-in takes.
+    mockedSignIn.mockResolvedValue({ identityToken: 'jwt-from-apple' });
+    mockedIdToken.mockRejectedValue(new Error('Keychain unavailable'));
+
+    expect(await signInWithApple()).toEqual({
+      status: 'failed',
+      message: 'Keychain unavailable',
+    });
+  });
 });

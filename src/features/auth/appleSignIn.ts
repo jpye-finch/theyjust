@@ -14,6 +14,16 @@ export type AppleSignInResult =
 // a decision, not a failure, and the difference matters at the call site. Left
 // as an exception it would surface as "something went wrong" to a parent who
 // simply changed their mind.
+//
+// Both calls below get their own try/catch, not one shared wrapper, because
+// signInWithIdToken's failure modes don't match signInAsync's. GoTrueClient's
+// own catch (node_modules/@supabase/auth-js GoTrueClient.signInWithIdToken)
+// converts AuthErrors into a returned { error } but rethrows everything else —
+// e.g. SecureStore rejecting inside the post-exchange _saveSession() write on
+// a device with Keychain trouble. That rethrow has to be folded into the same
+// { status: 'failed' } shape as a returned error, or a caller who trusts this
+// function to never throw gets an unhandled rejection on the hot path of
+// every successful sign-in.
 export async function signInWithApple(): Promise<AppleSignInResult> {
   let identityToken: string | null;
   try {
@@ -37,11 +47,15 @@ export async function signInWithApple(): Promise<AppleSignInResult> {
 
   // No nonce. Supabase requires one only when the token carries a `nonce`
   // claim, and signInAsync omits it unless we pass one in.
-  const { error } = await supabase.auth.signInWithIdToken({
-    provider: 'apple',
-    token: identityToken,
-  });
-  if (error) return { status: 'failed', message: error.message };
+  try {
+    const { error } = await supabase.auth.signInWithIdToken({
+      provider: 'apple',
+      token: identityToken,
+    });
+    if (error) return { status: 'failed', message: error.message };
 
-  return { status: 'signed-in' };
+    return { status: 'signed-in' };
+  } catch (e) {
+    return { status: 'failed', message: e instanceof Error ? e.message : 'Please try again.' };
+  }
 }
