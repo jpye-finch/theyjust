@@ -31,7 +31,7 @@ export const dateFieldStyles = StyleSheet.create({
     backgroundColor: color.paper,
     paddingHorizontal: space.lg,
     paddingTop: space.md,
-    paddingBottom: space.xl,
+    // paddingBottom comes from the safe-area inset at the call site.
     borderTopLeftRadius: radius.md,
     borderTopRightRadius: radius.md,
   },

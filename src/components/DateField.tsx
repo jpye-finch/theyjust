@@ -1,8 +1,9 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useState } from 'react';
 import { Modal, Platform, Pressable, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatDisplayDate, toIsoDate } from '@/lib/date';
-import { color } from '@/theme/tokens';
+import { color, space } from '@/theme/tokens';
 import { dateFieldStyles as styles } from './dateFieldStyles';
 import { TextButton } from './TextButton';
 
@@ -22,6 +23,8 @@ export function DateField({ label, value, onChange }: Props) {
   const [open, setOpen] = useState(false);
   // Held while the modal is up so the parent only hears a real choice.
   const [draft, setDraft] = useState<string | null>(null);
+  // The panel sits on the bottom edge, so it owes the home indicator its room.
+  const insets = useSafeAreaInsets();
 
   // iOS: once a date exists, the system control IS the field — tap it and Apple
   // presents its calendar in a popover, which is what iOS forms actually do.
@@ -69,7 +72,7 @@ export function DateField({ label, value, onChange }: Props) {
         </Pressable>
         <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
           <Pressable style={styles.backdrop} onPress={() => setOpen(false)} />
-          <View style={styles.panel}>
+          <View style={[styles.panel, { paddingBottom: insets.bottom + space.md }]}>
             <View style={styles.panelHead}>
               <Text style={styles.label}>{label}</Text>
               <TextButton

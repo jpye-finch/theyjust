@@ -1,5 +1,16 @@
 import { render, screen, userEvent } from '@testing-library/react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { CaptureForm } from '../CaptureForm';
+
+// The date field and the milestone picker both read the safe-area inset, so
+// the form cannot mount without a provider above it — same as in the app.
+const IPHONE = {
+  frame: { x: 0, y: 0, width: 390, height: 844 },
+  insets: { top: 59, left: 0, right: 0, bottom: 34 },
+};
+
+const renderForm = (ui: React.ReactElement) =>
+  render(<SafeAreaProvider initialMetrics={IPHONE}>{ui}</SafeAreaProvider>);
 
 // DateField wraps a platform date picker (native) / the browser's date input
 // (web), neither of which can be typed into. These tests exercise CaptureForm's
@@ -26,7 +37,7 @@ describe('CaptureForm', () => {
   it('submits a milestone moment with the preset title shown', async () => {
     const onSubmit = jest.fn();
     const user = userEvent.setup();
-    await render(
+    await renderForm(
       <CaptureForm
         initialMilestoneId="rolled_over"
         defaultOccurredOn="2026-05-01"
@@ -49,7 +60,7 @@ describe('CaptureForm', () => {
   it('requires a custom title when there is no preset', async () => {
     const onSubmit = jest.fn();
     const user = userEvent.setup();
-    await render(
+    await renderForm(
       <CaptureForm
         initialMilestoneId={null}
         defaultOccurredOn="2026-05-01"
@@ -74,7 +85,7 @@ describe('CaptureForm', () => {
   it('browses the catalogue and submits the chosen milestone', async () => {
     const onSubmit = jest.fn();
     const user = userEvent.setup();
-    await render(
+    await renderForm(
       <CaptureForm
         initialMilestoneId={null}
         defaultOccurredOn="2026-05-01"
@@ -103,7 +114,7 @@ describe('CaptureForm', () => {
   it('falls back to your own words after a milestone was chosen', async () => {
     const onSubmit = jest.fn();
     const user = userEvent.setup();
-    await render(
+    await renderForm(
       <CaptureForm
         initialMilestoneId="rolled_over"
         defaultOccurredOn="2026-05-01"
@@ -128,7 +139,7 @@ describe('CaptureForm', () => {
   it('rejects an invalid date', async () => {
     const onSubmit = jest.fn();
     const user = userEvent.setup();
-    await render(
+    await renderForm(
       <CaptureForm
         initialMilestoneId="rolled_over"
         defaultOccurredOn="2026-05-01"
@@ -145,7 +156,7 @@ describe('CaptureForm', () => {
   });
 
   it('reflects attached photo count on the add control', async () => {
-    await render(
+    await renderForm(
       <CaptureForm
         initialMilestoneId="rolled_over"
         defaultOccurredOn="2026-05-01"
@@ -158,7 +169,7 @@ describe('CaptureForm', () => {
   });
 
   it('uses the singular label for a single photo', async () => {
-    await render(
+    await renderForm(
       <CaptureForm
         initialMilestoneId="rolled_over"
         defaultOccurredOn="2026-05-01"
@@ -173,7 +184,7 @@ describe('CaptureForm', () => {
   it('offers a remove control per existing photo when editing', async () => {
     const onRemovePhoto = jest.fn();
     const user = userEvent.setup();
-    await render(
+    await renderForm(
       <CaptureForm
         initialMilestoneId={null}
         initialCustomTitle="First swim"
@@ -196,7 +207,7 @@ describe('CaptureForm', () => {
   });
 
   it('invites another photo once thumbnails are showing', async () => {
-    await render(
+    await renderForm(
       <CaptureForm
         initialMilestoneId={null}
         initialCustomTitle="First swim"

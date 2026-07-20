@@ -1,6 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
 import { useMemo, useState } from 'react';
 import { Modal, Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Field } from '@/components/Field';
 import { TextButton } from '@/components/TextButton';
 import { color, font, hairline, space, type } from '@/theme/tokens';
@@ -17,6 +18,10 @@ type Props = {
 // and filterable, because 40 entries is too many to scan cold.
 export function MilestonePicker({ visible, onSelect, onClose }: Props) {
   const [query, setQuery] = useState('');
+  // A full-screen Modal owns its own top inset — there is no navigator above it
+  // holding the header clear. The fixed padding it used to carry put the title
+  // under the Dynamic Island and Cancel under the battery.
+  const insets = useSafeAreaInsets();
 
   const sections = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -33,7 +38,7 @@ export function MilestonePicker({ visible, onSelect, onClose }: Props) {
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <View style={styles.screen}>
-        <View style={styles.header}>
+        <View testID="picker-header" style={[styles.header, { paddingTop: insets.top + space.md }]}>
           <Text style={styles.title}>Choose a milestone</Text>
           <TextButton label="Cancel" onPress={onClose} tone="muted" />
         </View>
@@ -79,7 +84,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: space.lg,
-    paddingTop: space.xl,
+    // paddingTop comes from the safe-area inset at the call site.
   },
   // Same toolbar treatment as the capture screen it opens from: quiet Karla
   // chrome paired with Cancel, so the two sheets share one vocabulary.
