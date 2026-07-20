@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
+  <!-- Android renders this as a flat tinted silhouette and discards all colour,
+       so shape is all that survives. No dot: at 96px a 3px hole fills in during
+       antialiasing. -->
+  <path fill="#FFFFFF" d="M33 12 L62 12 L62 84 L47.5 73 L33 84 Z"/>
+</svg>

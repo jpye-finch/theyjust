@@ -114,3 +114,37 @@ describe('android-icon-monochrome.png', () => {
     expect(png.pixel(216, 216)[3]).toBe(255);
   });
 });
+
+describe('notification-icon.png', () => {
+  const png = load('notification-icon.png');
+
+  // expo-notifications requires "96x96 all-white png with transparency".
+  it('is 96x96 with alpha', () => {
+    expect(png.width).toBe(96);
+    expect(png.height).toBe(96);
+    expect(png.hasAlpha).toBe(true);
+  });
+
+  it('contains only white and transparent pixels', () => {
+    const offenders: string[] = [];
+    for (let y = 0; y < 96; y += 1) {
+      for (let x = 0; x < 96; x += 1) {
+        const [r, g, b, a] = png.pixel(x, y);
+        if (a === 0) continue;
+        if (a === 255 && (r !== 255 || g !== 255 || b !== 255)) offenders.push(`${x},${y}`);
+      }
+    }
+    expect(offenders.slice(0, 5)).toEqual([]);
+  });
+
+  it('is inset to the 72x72 content box', () => {
+    for (let x = 0; x < 96; x += 1) {
+      expect(png.pixel(x, 11)[3]).toBe(0); // above the mark
+      expect(png.pixel(x, 85)[3]).toBe(0); // below the mark
+    }
+  });
+
+  it('paints the ribbon', () => {
+    expect(png.pixel(47, 40)[3]).toBe(255);
+  });
+});
