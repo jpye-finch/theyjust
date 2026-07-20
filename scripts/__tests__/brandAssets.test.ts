@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { readPng } from '../pngReader';
 
@@ -183,5 +183,49 @@ describe('favicon.png', () => {
 
   it('carries the damson field', () => {
     expectColor(png.pixel(8, 8), DAMSON);
+  });
+});
+
+describe('app.json', () => {
+  const config = JSON.parse(
+    readFileSync(join(__dirname, '..', '..', 'app.json'), 'utf8'),
+  ).expo;
+
+  const plugin = (name: string) =>
+    config.plugins.find((p: unknown) => Array.isArray(p) && p[0] === name)?.[1];
+
+  it('drops the scaffold Icon Composer bundle so iOS inherits the 1024 png', () => {
+    expect(config.ios.icon).toBeUndefined();
+    expect(config.icon).toBe('./assets/images/icon.png');
+  });
+
+  it('uses a damson adaptive icon background with no background image', () => {
+    expect(config.android.adaptiveIcon.backgroundColor).toBe('#833045');
+    expect(config.android.adaptiveIcon.backgroundImage).toBeUndefined();
+  });
+
+  it('splashes on paper, not Expo blue', () => {
+    expect(plugin('expo-splash-screen').backgroundColor).toBe('#F9F6F1');
+    expect(plugin('expo-splash-screen').imageWidth).toBe(240);
+  });
+
+  it('gives expo-notifications an icon to render', () => {
+    expect(plugin('expo-notifications').icon).toBe('./assets/images/notification-icon.png');
+    expect(plugin('expo-notifications').color).toBe('#833045');
+  });
+
+  it('points every asset path at a file that exists', () => {
+    const root = join(__dirname, '..', '..');
+    const paths = [
+      config.icon,
+      config.android.adaptiveIcon.foregroundImage,
+      config.android.adaptiveIcon.monochromeImage,
+      config.web.favicon,
+      plugin('expo-splash-screen').image,
+      plugin('expo-notifications').icon,
+    ];
+    for (const p of paths) {
+      expect(existsSync(join(root, p))).toBe(true);
+    }
   });
 });
