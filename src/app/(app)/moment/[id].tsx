@@ -66,8 +66,10 @@ export default function MomentDetailScreen() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      {/* "Close", not "Back": this is a sheet you dismiss, not a page you
+          retreat from — and the grabber above says the same thing. */}
       <View style={styles.headerRow}>
-        <TextButton label="Back" onPress={() => router.back()} tone="muted" />
+        <TextButton label="Close" onPress={() => router.back()} tone="muted" />
         <TextButton
           label="Edit"
           onPress={() => router.push({ pathname: '/capture', params: { momentId: moment.id } })}

@@ -1,10 +1,10 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TextButton } from '@/components/TextButton';
 import { childAge, formatChildAge } from '@/features/children/age';
-import { ChildForm } from '@/features/children/ChildForm';
-import { useChildren, useCreateChild, useUpdateChild } from '@/features/children/queries';
+import { useChildren } from '@/features/children/queries';
 import { deleteAccount } from '@/features/family/deleteAccount';
 import { exportEverything } from '@/features/family/exportData';
 import { useNotificationCadence } from '@/features/notifications/notificationSettings';
@@ -13,35 +13,19 @@ import { confirmDestructive, notify } from '@/lib/dialog';
 import { supabase } from '@/lib/supabase';
 import { color, font, hairline, space, type } from '@/theme/tokens';
 
-// One source of truth for the footer form. Two independent booleans could both
-// be true (add + edit), stranding the user; a single mode makes every state
-// reachable exactly one way.
-type FormMode = { type: 'idle' } | { type: 'adding' } | { type: 'editing'; id: string };
-
 export default function FamilyScreen() {
+  const router = useRouter();
   const { data: children = [], isPending } = useChildren();
-  const createChild = useCreateChild();
-  const updateChild = useUpdateChild();
-  const [mode, setMode] = useState<FormMode>({ type: 'idle' });
   const [exporting, setExporting] = useState(false);
   const { cadence, setCadence } = useNotificationCadence();
   const insets = useSafeAreaInsets();
 
-  // Every transition clears stale mutation errors, so a failed save on one
-  // child never surfaces on another child's untouched form.
-  const startAdding = () => {
-    createChild.reset();
-    setMode({ type: 'adding' });
-  };
-  const startEditing = (id: string) => {
-    updateChild.reset();
-    setMode({ type: 'editing', id });
-  };
-  const closeForm = () => {
-    createChild.reset();
-    updateChild.reset();
-    setMode({ type: 'idle' });
-  };
+  // The form lives in a sheet now, so the mode bookkeeping that kept add and
+  // edit from both being open at once went with it: the route IS the state, and
+  // a fresh mount per open means no stale field values or mutation errors to
+  // reset. Editing passes the id; adding passes nothing.
+  const openAdd = () => router.push('/child');
+  const openEdit = (id: string) => router.push({ pathname: '/child', params: { childId: id } });
 
   // Alert.alert is a silent no-op on react-native-web, so this confirm never
   // appeared there and Sign out simply did nothing.
@@ -83,10 +67,6 @@ export default function FamilyScreen() {
     );
   }
 
-  const editing = mode.type === 'editing' ? children.find((c) => c.id === mode.id) ?? null : null;
-  // A family with no children always shows the add form (and no cancel).
-  const showAdd = mode.type === 'adding' || children.length === 0;
-
   return (
     <FlatList
       style={styles.list}
@@ -105,48 +85,22 @@ export default function FamilyScreen() {
               {formatChildAge(childAge(item.date_of_birth, item.due_date, new Date()))}
             </Text>
           </View>
-          <TextButton label="Edit" onPress={() => startEditing(item.id)} />
+          <TextButton label="Edit" onPress={() => openEdit(item.id)} />
         </View>
       )}
       ListFooterComponent={
         <View style={styles.footer}>
-          {editing ? (
-            <View style={styles.form}>
-              <Text style={styles.formTitle}>{`Edit ${editing.name}`}</Text>
-              {/* key forces a remount when the edit target changes — without it,
-                  switching from editing child A to child B keeps A's field state
-                  and Save would overwrite B with A's values. */}
-              <ChildForm
-                key={editing.id}
-                submitLabel="Save"
-                busy={updateChild.isPending}
-                error={updateChild.error?.message ?? null}
-                initial={{
-                  name: editing.name,
-                  dateOfBirth: editing.date_of_birth,
-                  dueDate: editing.due_date,
-                }}
-                onSubmit={(input) =>
-                  updateChild.mutate({ id: editing.id, input }, { onSuccess: closeForm })
-                }
-              />
-              <TextButton label="Cancel" onPress={closeForm} tone="muted" />
-            </View>
-          ) : showAdd ? (
-            <View style={styles.form}>
-              <Text style={styles.formTitle}>Add a child</Text>
-              <ChildForm
-                submitLabel="Add child"
-                busy={createChild.isPending}
-                error={createChild.error?.message ?? null}
-                onSubmit={(input) => createChild.mutate(input, { onSuccess: closeForm })}
-              />
-              {children.length > 0 ? (
-                <TextButton label="Cancel" onPress={closeForm} tone="muted" />
-              ) : null}
+          {/* A family with no children used to get the add form inline and
+              permanently, with no way out of it. Now the form is a sheet, so
+              the empty case needs its own invitation rather than a form the
+              parent never asked to open. */}
+          {children.length === 0 ? (
+            <View style={styles.empty}>
+              <Text style={styles.emptyLine}>Start with whoever you are here for.</Text>
+              <TextButton label="Add your first child" onPress={openAdd} />
             </View>
           ) : (
-            <TextButton label="Add another child" onPress={startAdding} />
+            <TextButton label="Add another child" onPress={openAdd} />
           )}
           {/* expo-notifications cannot schedule on web, so the row is absent
               there rather than present and inert. */}
@@ -220,8 +174,8 @@ const styles = StyleSheet.create({
   childName: { fontFamily: font.display, fontSize: type.title, color: color.ink },
   childAge: { fontFamily: font.body, fontSize: type.label, color: color.inkMuted },
   footer: { padding: space.lg, gap: space.lg },
-  form: { gap: space.lg },
-  formTitle: { fontFamily: font.display, fontSize: type.title, color: color.ink },
+  empty: { gap: space.sm },
+  emptyLine: { fontFamily: font.body, fontSize: type.body, color: color.inkMuted, lineHeight: 24 },
   section: { gap: space.sm, paddingTop: space.xl, paddingBottom: space.lg, ...hairline },
   // Karla, not Fraunces: settings are functional chrome, and the celebration
   // voice on this screen belongs to the children's names.

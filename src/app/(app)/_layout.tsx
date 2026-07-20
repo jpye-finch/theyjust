@@ -27,7 +27,33 @@ export default function AppLayout() {
             sheetCornerRadius: 24,
           }}
         />
-        <Stack.Screen name="moment/[id]" />
+        {/* Reading a moment is a sheet for the same reason capturing one is:
+            it is a single thing you open, look at, and dismiss. As a full
+            screen with headerShown:false it also had nothing holding its own
+            Back and Edit clear of the status bar, so both sat under the
+            Dynamic Island. A sheet starts below the notch by construction. */}
+        <Stack.Screen
+          name="moment/[id]"
+          options={{
+            presentation: 'formSheet',
+            sheetAllowedDetents: [0.85, 1],
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 24,
+          }}
+        />
+        {/* Adding and editing a child is the same kind of act as capturing a
+            moment, so it gets the same sheet rather than a form wedged into
+            the foot of the family list. */}
+        <Stack.Screen
+          name="child"
+          options={{
+            presentation: 'formSheet',
+            // Shorter than capture: this form is four fields, not an open note.
+            sheetAllowedDetents: [0.75, 1],
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 24,
+          }}
+        />
       </Stack>
     </SelectedChildProvider>
   );
