@@ -18,14 +18,8 @@ export const dateFieldStyles = StyleSheet.create({
     borderBottomWidth: 1.5,
     borderBottomColor: color.rule,
   },
-  // iOS's compact picker draws its own control, so it sits on a bare row: the
-  // underline underneath it read as a second, empty field.
-  nativeRow: { alignItems: 'flex-start', paddingVertical: space.xs },
-  // The control's own pill carries leading padding, so it starts a few points
-  // right of the labels above it. The offset pulls it back to the same margin.
-  nativePicker: { alignSelf: 'flex-start', marginLeft: -space.xs },
-  // The unset field opens the picker over the page rather than unfolding a
-  // month grid inside the form.
+  // The calendar opens over the page rather than unfolding a month grid inside
+  // the form, which pushed everything below it out of reach.
   backdrop: { flex: 1, backgroundColor: 'rgba(42,32,27,0.28)' },
   panel: {
     backgroundColor: color.paper,
