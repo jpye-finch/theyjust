@@ -66,14 +66,22 @@ Expected: `100x100 srgba`.
 - [ ] **Step 3: Confirm the evenodd hole is actually transparent**
 
 ```bash
-magick "$SP/spike.png" -format '%[pixel:p{50,30}] %[pixel:p{50,70}] %[pixel:p{5,5}]\n' info:
+magick "$SP/spike.png" -format 'ribbon=%[pixel:p{30,30}] hole=%[pixel:p{50,30}] field=%[pixel:p{5,5}] notch=%[pixel:p{50,75}]\n' info:
 ```
 
-Expected: pixel `(50,30)` is the hole — must be `none` or fully transparent. Pixel `(50,70)` is inside the ribbon — must be near `#F9F6F1`. Pixel `(5,5)` is the field — must be near `#833045`.
+Expected — **choose sample points carefully, they are easy to get wrong**:
+- `ribbon=(30,30)` → `srgb(249,246,241)`. Inside the ribbon and clear of the dot, which spans y 20–40 at x 40–60.
+- `hole=(50,30)` → `srgb(131,48,69)`. The `evenodd` hole, showing the field through it.
+- `field=(5,5)` → `srgb(131,48,69)`.
+- `notch=(50,75)` → `srgb(131,48,69)`. The V is cut from y 60 down to y 80, so the vertical centreline below y=60 is *field*, not ribbon.
+
+The image is opaque overall (`identify` reports 3 channels, no alpha) because the `rect` covers the canvas. That is correct and expected.
 
 - [ ] **Step 4: Decide and record**
 
-If Step 3 matches, the internal renderer is fine — proceed with SVG sources as planned and note it in the commit message.
+**This gate has already been run on this machine and it PASSED** — ImageMagick 7.1.1-43's internal renderer handles paths, elliptical arcs, `fill-rule="evenodd"`, and newlines inside a `d` attribute correctly. Re-run it to confirm, but do not expect a fallback to be needed.
+
+If Step 3 matches, the internal renderer is fine — proceed with SVG sources as planned.
 
 **If the hole is opaque or the arcs are malformed**, stop and switch the build script to `magick -draw` primitives instead:
 - ribbon → `-draw "polygon x1,y1 x2,y2 ..."`
