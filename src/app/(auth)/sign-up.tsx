@@ -1,6 +1,7 @@
 import { Link } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { OrDivider } from '@/components/OrDivider';
 import { AppleSignInButton } from '@/features/auth/AppleSignInButton';
 import { signInWithApple } from '@/features/auth/appleSignIn';
 import { AuthForm } from '@/features/auth/AuthForm';
@@ -64,11 +65,7 @@ export default function SignUp() {
     <View style={styles.screen}>
       <Text style={styles.title}>Create account</Text>
       <AppleSignInButton onPress={continueWithApple} />
-      <View style={styles.orRow}>
-        <View style={styles.orRule} />
-        <Text style={styles.orText}>or</Text>
-        <View style={styles.orRule} />
-      </View>
+      <OrDivider />
       <AuthForm submitLabel="Sign up" onSubmit={signUp} error={error} busy={busy} />
       <Link href="/(auth)/sign-in" style={styles.link}>
         Already have an account? Sign in
@@ -99,9 +96,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
   },
-  orRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-  orRule: { flex: 1, height: 1, backgroundColor: color.rule },
-  orText: { fontFamily: font.body, fontSize: type.caption, color: color.inkMuted },
   link: {
     fontFamily: font.medium,
     fontSize: type.label,

@@ -1,6 +1,7 @@
 import { Link } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { OrDivider } from '@/components/OrDivider';
 import { AppleSignInButton } from '@/features/auth/AppleSignInButton';
 import { signInWithApple } from '@/features/auth/appleSignIn';
 import { AuthForm } from '@/features/auth/AuthForm';
@@ -42,11 +43,7 @@ export default function SignIn() {
         <Text style={styles.subtitle}>Every first, remembered.</Text>
       </View>
       <AppleSignInButton onPress={continueWithApple} />
-      <View style={styles.orRow}>
-        <View style={styles.orRule} />
-        <Text style={styles.orText}>or</Text>
-        <View style={styles.orRule} />
-      </View>
+      <OrDivider />
       <AuthForm submitLabel="Sign in" onSubmit={signIn} error={error} busy={busy} />
       <Link href="/(auth)/sign-up" style={styles.link}>
         New here? Create an account
@@ -66,9 +63,6 @@ const styles = StyleSheet.create({
   brand: { alignItems: 'center', gap: space.xs, marginBottom: space.sm },
   title: { fontFamily: font.displayBold, fontSize: 40, color: color.ink, letterSpacing: -0.5 },
   subtitle: { fontFamily: font.serifItalic, fontSize: type.title, color: color.damson },
-  orRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-  orRule: { flex: 1, height: 1, backgroundColor: color.rule },
-  orText: { fontFamily: font.body, fontSize: type.caption, color: color.inkMuted },
   link: {
     fontFamily: font.medium,
     fontSize: type.label,
