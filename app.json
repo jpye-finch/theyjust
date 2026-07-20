@@ -10,7 +10,10 @@
     "ios": {
       "bundleIdentifier": "com.firsts.app",
       "supportsTablet": false,
-      "usesAppleSignIn": true
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.firsts.app",
